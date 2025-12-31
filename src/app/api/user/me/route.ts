@@ -22,7 +22,6 @@ export async function GET() {
         email: session.user.email,
         discogsUsername: session.user.discogsUsername,
         publicSlug: session.user.publicSlug,
-        displayName: session.user.displayName,
       },
     });
   } catch (error) {
