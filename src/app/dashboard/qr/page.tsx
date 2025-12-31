@@ -15,14 +15,28 @@ export default function QRCodePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real implementation, fetch session data from an API
-    // For now, we'll use a placeholder
-    const baseUrl = window.location.origin;
-    const slug = 'your-collection'; // This would come from session
-    setCollectionUrl(`${baseUrl}/c/${slug}`);
-    setPublicSlug(slug);
-    setLoading(false);
-  }, []);
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('/api/user/me');
+        if (!response.ok) {
+          router.push('/auth/signin');
+          return;
+        }
+        const data = await response.json();
+        const baseUrl = window.location.origin;
+        const slug = data.user.publicSlug;
+        setCollectionUrl(`${baseUrl}/c/${slug}`);
+        setPublicSlug(slug);
+      } catch (error) {
+        console.error('Failed to fetch user data:', error);
+        router.push('/auth/signin');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [router]);
 
   if (loading) {
     return <div>Loading...</div>;
