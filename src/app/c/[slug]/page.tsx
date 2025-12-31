@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import AlbumGrid from '@/components/collection/AlbumGrid';
-import SearchBar from '@/components/collection/SearchBar';
-import FilterPanel from '@/components/collection/FilterPanel';
-import SortSelect from '@/components/collection/SortSelect';
+import ControlsFAB from '@/components/collection/ControlsFAB';
+import ControlsDrawer from '@/components/collection/ControlsDrawer';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Album } from '@/types/discogs';
 
@@ -39,6 +38,7 @@ export default function CollectionPage() {
     format: '',
     genre: '',
   });
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     fetchCollection();
@@ -68,6 +68,18 @@ export default function CollectionPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Calculate active filters count for badge
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (searchQuery) count++;
+    if (filters.yearFrom) count++;
+    if (filters.yearTo) count++;
+    if (filters.format) count++;
+    if (filters.genre) count++;
+    if (sortBy !== 'artist') count++; // Default is 'artist'
+    return count;
   };
 
   const applyFiltersAndSort = () => {
@@ -155,32 +167,20 @@ export default function CollectionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-4">
-      <div className="mx-auto max-w-7xl space-y-6 py-8">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-            {data?.user.displayName || 'Vinyl Collection'}
+    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-3 sm:p-4">
+      <div className="mx-auto max-w-7xl">
+        {/* Minimal Header */}
+        <div className="py-3 sm:py-4">
+          <h1 className="text-base sm:text-lg font-medium text-white">
+            {data?.user.displayName || 'Vinyl Collection'} • {data?.pagination.items || 0} records
           </h1>
-          {data?.user.bio && (
-            <p className="text-lg text-neutral-300">{data.user.bio}</p>
-          )}
-          <p className="text-sm text-neutral-400">
-            {data?.pagination.items} records in collection
-          </p>
         </div>
 
-        <div className="space-y-4">
-          <SearchBar value={searchQuery} onChange={setSearchQuery} />
-
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <FilterPanel filters={filters} onChange={setFilters} />
-            <SortSelect value={sortBy} onChange={setSortBy} />
-          </div>
-        </div>
-
+        {/* Album Grid - starts immediately */}
         <AlbumGrid albums={filteredAlbums} />
 
-        {filteredAlbums.length === 0 && (
+        {/* Empty State */}
+        {filteredAlbums.length === 0 && !loading && (
           <div className="py-12 text-center">
             <p className="text-lg text-neutral-400">
               No records found matching your criteria
@@ -188,6 +188,26 @@ export default function CollectionPage() {
           </div>
         )}
       </div>
+
+      {/* Floating Action Button */}
+      <ControlsFAB
+        onClick={() => setDrawerOpen(true)}
+        activeFiltersCount={getActiveFiltersCount()}
+      />
+
+      {/* Controls Drawer */}
+      <ControlsDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        filters={filters}
+        onFiltersChange={setFilters}
+        totalResults={filteredAlbums.length}
+        totalRecords={data?.pagination.items || 0}
+      />
     </div>
   );
 }
