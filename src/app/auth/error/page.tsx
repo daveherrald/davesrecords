@@ -2,18 +2,20 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-export default function AuthErrorPage({
+export default async function AuthErrorPage({
   searchParams,
 }: {
-  searchParams: { error?: string };
+  searchParams: Promise<{ error?: string }>;
 }) {
+  const params = await searchParams;
+
   const errorMessages: Record<string, string> = {
     OAuthError: 'Failed to connect with Discogs. Please try again.',
     CallbackError: 'An error occurred during authentication. Please try again.',
     Default: 'An unexpected error occurred. Please try again.',
   };
 
-  const errorMessage = errorMessages[searchParams.error || 'Default'] || errorMessages.Default;
+  const errorMessage = errorMessages[params.error || 'Default'] || errorMessages.Default;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-4">

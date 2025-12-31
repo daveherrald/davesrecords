@@ -42,6 +42,9 @@ export async function GET(request: NextRequest) {
     const requestData = {
       url: 'https://api.discogs.com/oauth/access_token',
       method: 'POST' as const,
+      data: {
+        oauth_verifier: oauthVerifier,
+      },
     };
 
     const token = {
@@ -49,23 +52,32 @@ export async function GET(request: NextRequest) {
       secret: tokenSecret,
     };
 
-    const response = await fetch(
-      requestData.url + '?oauth_verifier=' + oauthVerifier,
-      {
-        method: 'POST',
-        headers: {
-          ...oauth.toHeader(oauth.authorize(requestData, token)),
-          'User-Agent': 'VinylCollectionViewer/1.0',
-        },
-      }
-    );
+    const authHeader = oauth.toHeader(oauth.authorize(requestData, token));
+
+    const response = await fetch(requestData.url, {
+      method: 'POST',
+      headers: {
+        ...authHeader,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'VinylCollectionViewer/1.0',
+      },
+      body: new URLSearchParams({
+        oauth_verifier: oauthVerifier,
+      }).toString(),
+    });
 
     const responseText = await response.text();
+    console.log('Discogs access token response:', responseText);
+    console.log('Response status:', response.status);
+
     const params = new URLSearchParams(responseText);
     const accessToken = params.get('oauth_token');
     const accessTokenSecret = params.get('oauth_token_secret');
 
+    console.log('Parsed tokens:', { accessToken, accessTokenSecret });
+
     if (!accessToken || !accessTokenSecret) {
+      console.error('Failed to parse access token. Response:', responseText);
       throw new Error('Failed to get access token from Discogs');
     }
 
