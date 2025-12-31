@@ -117,9 +117,15 @@ export default function ControlsDrawer({
         {/* Content */}
         <div className="overflow-y-auto h-[calc(100vh-140px)] p-4 space-y-6">
           {/* Results Count */}
-          <div className="text-sm text-neutral-300">
-            Showing {totalResults} of {totalRecords} records
-          </div>
+          {totalResults < totalRecords ? (
+            <div className="text-sm text-neutral-300">
+              <span className="font-semibold text-white">{totalResults}</span> of {totalRecords} records match
+            </div>
+          ) : (
+            <div className="text-sm text-neutral-300">
+              {totalRecords} records total
+            </div>
+          )}
 
           {/* Search */}
           <div className="space-y-2">
