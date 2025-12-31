@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Card } from '@/components/ui/card';
 import AlbumDetail from './AlbumDetail';
 import type { Album } from '@/types/discogs';
 
@@ -16,8 +15,8 @@ export default function AlbumCard({ album }: AlbumCardProps) {
 
   return (
     <>
-      <Card
-        className="group cursor-pointer overflow-hidden transition-all hover:scale-105 hover:shadow-xl"
+      <div
+        className="group cursor-pointer overflow-hidden rounded-lg transition-all hover:scale-105 hover:shadow-xl"
         onClick={() => setShowDetail(true)}
       >
         <div className="aspect-square relative bg-neutral-200">
@@ -56,7 +55,7 @@ export default function AlbumCard({ album }: AlbumCardProps) {
             </div>
           </div>
         </div>
-      </Card>
+      </div>
 
       {showDetail && (
         <AlbumDetail
