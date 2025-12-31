@@ -12,6 +12,7 @@
     "@auth/prisma-adapter": "^2.11.1",
     "@lionralfs/discogs-client": "^4.1.4",
     "@prisma/client": "^6.19.1",
+    "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
