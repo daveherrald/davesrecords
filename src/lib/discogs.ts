@@ -198,7 +198,9 @@ export async function getAlbumDetails(
     catalogNumber: release.labels[0]?.catno || '',
     country: release.country,
     notes: release.notes,
-    discogsUrl: `https://www.discogs.com${release.uri}`,
+    discogsUrl: release.uri.startsWith('http')
+      ? release.uri
+      : `https://www.discogs.com${release.uri}`,
   };
 
   // Cache the result
