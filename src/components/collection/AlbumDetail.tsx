@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 interface AlbumDetailProps {
   albumId: number;
+  userSlug?: string;
   onClose: () => void;
 }
 
@@ -36,58 +37,182 @@ interface AlbumDetailData {
   discogsUrl: string;
 }
 
-export default function AlbumDetail({ albumId, onClose }: AlbumDetailProps) {
+export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailProps) {
   const [album, setAlbum] = useState<AlbumDetailData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
-    // For now, we'll just show a placeholder since the detail endpoint needs user context
-    // In a real implementation, you'd fetch from an API endpoint
-    setLoading(false);
-  }, [albumId]);
+    const fetchAlbumDetails = async () => {
+      try {
+        setLoading(true);
+        setError('');
+
+        const url = userSlug
+          ? `/api/release/${albumId}?slug=${userSlug}`
+          : `/api/release/${albumId}`;
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to load album details');
+        }
+
+        const data = await response.json();
+        setAlbum(data);
+      } catch (err) {
+        console.error('Error fetching album details:', err);
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAlbumDetails();
+  }, [albumId, userSlug]);
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 border-neutral-700">
         {loading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-8 w-3/4" />
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-32 w-full" />
+          <div className="space-y-4 p-4">
+            <Skeleton className="h-8 w-3/4 bg-neutral-700" />
+            <Skeleton className="h-64 w-full bg-neutral-700" />
+            <Skeleton className="h-32 w-full bg-neutral-700" />
           </div>
-        ) : (
-          <div className="space-y-6">
+        ) : error ? (
+          <div className="p-4">
             <DialogHeader>
-              <DialogTitle className="text-2xl">Album Details</DialogTitle>
+              <DialogTitle className="text-2xl text-red-400">Error</DialogTitle>
+            </DialogHeader>
+            <p className="mt-4 text-neutral-300">{error}</p>
+          </div>
+        ) : album ? (
+          <div className="space-y-6 p-6">
+            {/* Header */}
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold text-white">
+                {album.artist} - {album.title}
+              </DialogTitle>
+              <p className="text-sm text-neutral-300">
+                {album.year} • {album.label} • {album.catalogNumber}
+              </p>
             </DialogHeader>
 
-            <div className="rounded-lg bg-neutral-100 p-4 text-center">
-              <p className="text-sm text-neutral-600">
-                Detailed album information will be displayed here.
-              </p>
-              <p className="text-xs text-neutral-500 mt-2">
-                This feature requires connecting to the Discogs API with user authentication.
-              </p>
-            </div>
+            {/* Two-column layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left column - Album art */}
+              <div className="space-y-4">
+                <div className="aspect-square relative bg-neutral-200 rounded-lg overflow-hidden shadow-lg">
+                  {!imageError ? (
+                    <Image
+                      src={album.coverImage}
+                      alt={`${album.artist} - ${album.title}`}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="object-cover"
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-neutral-300">
+                      <svg
+                        className="h-24 w-24 text-neutral-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+                        />
+                      </svg>
+                    </div>
+                  )}
+                </div>
 
-            <div className="text-sm text-neutral-600">
-              <p>Album ID: {albumId}</p>
-              <p className="mt-2">
-                In the full implementation, this modal will show:
-              </p>
-              <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>High-resolution album artwork</li>
-                <li>Complete tracklist with durations</li>
-                <li>Artist information and credits</li>
-                <li>Label and catalog number</li>
-                <li>Release date and country</li>
-                <li>Genres and styles</li>
-                <li>User notes (if any)</li>
-                <li>Link to Discogs page</li>
-              </ul>
+                {/* Quick info */}
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="font-medium text-neutral-400">Format</span>
+                    <span className="text-white">{album.format}</span>
+                  </div>
+                  {album.country && (
+                    <div className="flex justify-between">
+                      <span className="font-medium text-neutral-400">Country</span>
+                      <span className="text-white">{album.country}</span>
+                    </div>
+                  )}
+                  {album.genres.length > 0 && (
+                    <div className="flex justify-between">
+                      <span className="font-medium text-neutral-400">Genre</span>
+                      <span className="text-white text-right">{album.genres.join(', ')}</span>
+                    </div>
+                  )}
+                  {album.styles.length > 0 && (
+                    <div className="flex justify-between">
+                      <span className="font-medium text-neutral-400">Style</span>
+                      <span className="text-white text-right">{album.styles.join(', ')}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Notes */}
+                {album.notes && (
+                  <div className="bg-neutral-800/50 p-4 rounded-lg border border-neutral-700">
+                    <h3 className="text-sm font-semibold text-white mb-2">Notes</h3>
+                    <p className="text-sm text-neutral-300 whitespace-pre-wrap">{album.notes}</p>
+                  </div>
+                )}
+
+                {/* Discogs link */}
+                <a
+                  href={album.discogsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  View on Discogs
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
+
+              {/* Right column - Tracklist */}
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-4">Tracklist</h3>
+                {album.tracklist.length > 0 ? (
+                  <div className="space-y-1 max-h-[500px] overflow-y-auto pr-2">
+                    {album.tracklist.map((track, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start gap-3 py-2 px-3 rounded hover:bg-neutral-800/50 transition-colors"
+                      >
+                        <span className="text-sm font-medium text-neutral-400 min-w-[2rem]">
+                          {track.position}
+                        </span>
+                        <span className="text-sm text-white flex-1">
+                          {track.title}
+                        </span>
+                        {track.duration && (
+                          <span className="text-sm text-neutral-300 tabular-nums">
+                            {track.duration}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-neutral-400 italic">No tracklist available</p>
+                )}
+              </div>
             </div>
           </div>
-        )}
+        ) : null}
       </DialogContent>
     </Dialog>
   );

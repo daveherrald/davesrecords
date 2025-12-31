@@ -7,9 +7,10 @@ import type { Album } from '@/types/discogs';
 
 interface AlbumCardProps {
   album: Album;
+  userSlug?: string;
 }
 
-export default function AlbumCard({ album }: AlbumCardProps) {
+export default function AlbumCard({ album, userSlug }: AlbumCardProps) {
   const [showDetail, setShowDetail] = useState(false);
   const [imageError, setImageError] = useState(false);
 
@@ -60,6 +61,7 @@ export default function AlbumCard({ album }: AlbumCardProps) {
       {showDetail && (
         <AlbumDetail
           albumId={album.id}
+          userSlug={userSlug}
           onClose={() => setShowDetail(false)}
         />
       )}

@@ -3,13 +3,14 @@ import type { Album } from '@/types/discogs';
 
 interface AlbumGridProps {
   albums: Album[];
+  userSlug?: string;
 }
 
-export default function AlbumGrid({ albums }: AlbumGridProps) {
+export default function AlbumGrid({ albums, userSlug }: AlbumGridProps) {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {albums.map((album) => (
-        <AlbumCard key={album.instanceId} album={album} />
+        <AlbumCard key={album.instanceId} album={album} userSlug={userSlug} />
       ))}
     </div>
   );

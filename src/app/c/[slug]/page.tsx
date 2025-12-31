@@ -177,7 +177,7 @@ export default function CollectionPage() {
         </div>
 
         {/* Album Grid - starts immediately */}
-        <AlbumGrid albums={filteredAlbums} />
+        <AlbumGrid albums={filteredAlbums} userSlug={slug} />
 
         {/* Empty State */}
         {filteredAlbums.length === 0 && !loading && (
