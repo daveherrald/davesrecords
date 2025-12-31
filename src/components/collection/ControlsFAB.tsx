@@ -10,11 +10,11 @@ export default function ControlsFAB({ onClick, activeFiltersCount = 0 }: Control
     <button
       onClick={onClick}
       aria-label="Open filters and search"
-      className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-2xl transition-all duration-300 hover:scale-110 hover:shadow-3xl active:scale-95"
+      className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-800/90 backdrop-blur-sm border border-neutral-700 shadow-xl transition-all duration-300 hover:bg-neutral-700 hover:scale-105 active:scale-95"
     >
       {/* Filter/Settings Icon */}
       <svg
-        className="h-6 w-6 text-neutral-900"
+        className="h-6 w-6 text-neutral-300"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
