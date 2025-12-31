@@ -3,12 +3,18 @@ import { Ratelimit } from '@upstash/ratelimit';
 
 /**
  * Cache utilities for Redis (Vercel KV)
+ * In development, Redis is optional - cache operations will fail gracefully
  */
+
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 /**
  * Get data from cache
  */
 export async function getCached<T>(key: string): Promise<T | null> {
+  if (!IS_PRODUCTION) {
+    return null; // Skip cache in development
+  }
   try {
     const cached = await kv.get<T>(key);
     return cached;
@@ -26,6 +32,9 @@ export async function setCached<T>(
   value: T,
   ttlSeconds: number = 600
 ): Promise<void> {
+  if (!IS_PRODUCTION) {
+    return; // Skip cache in development
+  }
   try {
     await kv.setex(key, ttlSeconds, value);
   } catch (error) {
@@ -37,6 +46,9 @@ export async function setCached<T>(
  * Delete data from cache
  */
 export async function deleteCached(key: string): Promise<void> {
+  if (!IS_PRODUCTION) {
+    return; // Skip cache in development
+  }
   try {
     await kv.del(key);
   } catch (error) {
@@ -45,26 +57,37 @@ export async function deleteCached(key: string): Promise<void> {
 }
 
 /**
+ * No-op rate limiter for development
+ */
+const noopRateLimiter = {
+  limit: async () => ({ success: true, limit: 100, remaining: 100, reset: 0, pending: Promise.resolve() }),
+};
+
+/**
  * Rate limiter for Discogs API
  * Discogs allows 60 requests per minute for authenticated users
  */
-export const discogsRateLimiter = new Ratelimit({
-  redis: kv,
-  limiter: Ratelimit.slidingWindow(60, '60 s'),
-  analytics: true,
-  prefix: 'ratelimit:discogs',
-});
+export const discogsRateLimiter = IS_PRODUCTION
+  ? new Ratelimit({
+      redis: kv,
+      limiter: Ratelimit.slidingWindow(60, '60 s'),
+      analytics: true,
+      prefix: 'ratelimit:discogs',
+    })
+  : noopRateLimiter;
 
 /**
  * Rate limiter for API endpoints
  * General rate limiting for public endpoints
  */
-export const apiRateLimiter = new Ratelimit({
-  redis: kv,
-  limiter: Ratelimit.slidingWindow(100, '60 s'),
-  analytics: true,
-  prefix: 'ratelimit:api',
-});
+export const apiRateLimiter = IS_PRODUCTION
+  ? new Ratelimit({
+      redis: kv,
+      limiter: Ratelimit.slidingWindow(100, '60 s'),
+      analytics: true,
+      prefix: 'ratelimit:api',
+    })
+  : noopRateLimiter;
 
 /**
  * Generate cache key for collection data

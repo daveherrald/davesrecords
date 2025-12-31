@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getSession } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CopyButton } from '@/components/CopyButton';
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -43,13 +44,13 @@ export default async function DashboardPage() {
                     View Collection
                   </Button>
                 </Link>
-                <Button
+                <CopyButton
+                  text={collectionUrl}
                   variant="outline"
-                  onClick={() => navigator.clipboard.writeText(collectionUrl)}
                   className="flex-1"
                 >
                   Copy Link
-                </Button>
+                </CopyButton>
               </div>
             </CardContent>
           </Card>
