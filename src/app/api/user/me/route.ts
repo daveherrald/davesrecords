@@ -20,8 +20,12 @@ export async function GET() {
       user: {
         id: session.user.id,
         email: session.user.email,
-        discogsUsername: session.user.discogsUsername,
+        name: session.user.name,
+        image: session.user.image,
         publicSlug: session.user.publicSlug,
+        displayName: session.user.displayName,
+        hasDiscogsConnection: session.user.hasDiscogsConnection,
+        discogsUsername: session.user.discogsUsername,
       },
     });
   } catch (error) {

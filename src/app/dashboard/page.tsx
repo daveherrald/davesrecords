@@ -19,12 +19,30 @@ export default async function DashboardPage() {
       <div className="mx-auto max-w-4xl space-y-8 py-8">
         <div className="space-y-2">
           <h1 className="text-4xl font-bold tracking-tight text-white">
-            Welcome, {session.user.discogsUsername}
+            Welcome, {session.user.displayName || session.user.name}
           </h1>
           <p className="text-lg text-neutral-300">
             Manage your vinyl collection and share it with visitors
           </p>
         </div>
+
+        {!session.user.hasDiscogsConnection && (
+          <Card className="border-yellow-500/50 bg-yellow-500/10">
+            <CardHeader>
+              <CardTitle className="text-yellow-100">Connect Your Discogs Account</CardTitle>
+              <CardDescription className="text-yellow-200/80">
+                To display your vinyl collection, you need to connect your Discogs account
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/dashboard/settings">
+                <Button className="w-full bg-yellow-600 hover:bg-yellow-700">
+                  Connect Discogs Account
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
@@ -123,7 +141,9 @@ export default async function DashboardPage() {
             <CardHeader>
               <CardTitle>Account</CardTitle>
               <CardDescription>
-                Connected to Discogs as {session.user.discogsUsername}
+                {session.user.hasDiscogsConnection
+                  ? `Connected to Discogs as ${session.user.discogsUsername}`
+                  : 'Signed in with Google'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -134,6 +154,11 @@ export default async function DashboardPage() {
                 <p>
                   <strong>Public Slug:</strong> {session.user.publicSlug}
                 </p>
+                {session.user.hasDiscogsConnection && (
+                  <p>
+                    <strong>Discogs:</strong> {session.user.discogsUsername}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

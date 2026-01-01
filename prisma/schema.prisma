@@ -10,33 +10,90 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User accounts with Discogs authentication
-model User {
-  id                String    @id @default(cuid())
-  email             String?   @unique
-  discogsUsername   String    @unique
-  discogsId         String    @unique
+// NextAuth.js Account model - OAuth provider accounts
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
-  // OAuth tokens (stored encrypted)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// NextAuth.js VerificationToken model
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// User accounts - now authentication-agnostic
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+
+  // Legacy Discogs fields (kept temporarily nullable for migration)
+  discogsUsername   String?   @unique
+  discogsId         String?   @unique
+  accessToken       String?
+  accessTokenSecret String?
+
+  // User preferences
+  displayName  String?
+  bio          String?
+  publicSlug   String   @unique  // e.g., "johns-vinyl"
+  isPublic     Boolean  @default(true)
+
+  // Settings
+  defaultSort  String   @default("artist")
+  itemsPerPage Int      @default(50)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  accounts          Account[]
+  sessions          Session[]
+  discogsConnection DiscogsConnection?
+
+  @@index([publicSlug])
+  @@index([email])
+}
+
+// Discogs API connection - separate from authentication
+model DiscogsConnection {
+  id       String @id @default(cuid())
+  userId   String @unique
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  discogsId       String @unique
+  discogsUsername String @unique
+
+  // OAuth tokens (encrypted)
   accessToken       String
   accessTokenSecret String
 
-  // User preferences
-  displayName       String?
-  bio               String?
-  publicSlug        String    @unique  // e.g., "johns-vinyl"
-  isPublic          Boolean   @default(true)
+  connectedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  // Settings
-  defaultSort       String    @default("artist")
-  itemsPerPage      Int       @default(50)
-
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  sessions          Session[]
-
-  @@index([publicSlug])
   @@index([discogsUsername])
+  @@index([discogsId])
 }
 
 // Session management for NextAuth

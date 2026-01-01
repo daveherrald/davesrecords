@@ -79,9 +79,9 @@ export async function getUserCollection(
     throw new Error('Rate limit exceeded. Please try again later.');
   }
 
-  // Get user's tokens
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
+  // Get user's Discogs connection
+  const connection = await prisma.discogsConnection.findUnique({
+    where: { userId },
     select: {
       accessToken: true,
       accessTokenSecret: true,
@@ -89,15 +89,15 @@ export async function getUserCollection(
     },
   });
 
-  if (!user) {
-    throw new Error('User not found');
+  if (!connection) {
+    throw new Error('Discogs account not connected. Please connect your Discogs account in settings.');
   }
 
-  const accessToken = decrypt(user.accessToken);
-  const accessTokenSecret = decrypt(user.accessTokenSecret);
+  const accessToken = decrypt(connection.accessToken);
+  const accessTokenSecret = decrypt(connection.accessTokenSecret);
 
   // Build API URL
-  const url = `${DISCOGS_API_BASE}/users/${user.discogsUsername}/collection/folders/0/releases?page=${page}&per_page=${perPage}`;
+  const url = `${DISCOGS_API_BASE}/users/${connection.discogsUsername}/collection/folders/0/releases?page=${page}&per_page=${perPage}`;
 
   // Fetch from API
   const data = await makeDiscogsRequest<DiscogsCollectionResponse>(
@@ -151,21 +151,21 @@ export async function getAlbumDetails(
     throw new Error('Rate limit exceeded. Please try again later.');
   }
 
-  // Get user's tokens
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
+  // Get user's Discogs connection
+  const connection = await prisma.discogsConnection.findUnique({
+    where: { userId },
     select: {
       accessToken: true,
       accessTokenSecret: true,
     },
   });
 
-  if (!user) {
-    throw new Error('User not found');
+  if (!connection) {
+    throw new Error('Discogs account not connected. Please connect your Discogs account in settings.');
   }
 
-  const accessToken = decrypt(user.accessToken);
-  const accessTokenSecret = decrypt(user.accessTokenSecret);
+  const accessToken = decrypt(connection.accessToken);
+  const accessTokenSecret = decrypt(connection.accessTokenSecret);
 
   // Fetch from API
   const url = `${DISCOGS_API_BASE}/releases/${releaseId}`;

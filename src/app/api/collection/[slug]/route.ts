@@ -34,10 +34,14 @@ export async function GET(
       where: { publicSlug: slug },
       select: {
         id: true,
-        discogsUsername: true,
         displayName: true,
         bio: true,
         isPublic: true,
+        discogsConnection: {
+          select: {
+            discogsUsername: true,
+          },
+        },
       },
     });
 
@@ -52,6 +56,13 @@ export async function GET(
       return NextResponse.json(
         { error: 'This collection is private' },
         { status: 403 }
+      );
+    }
+
+    if (!user.discogsConnection) {
+      return NextResponse.json(
+        { error: 'This user has not connected their Discogs account' },
+        { status: 404 }
       );
     }
 
@@ -70,7 +81,7 @@ export async function GET(
 
     const response = {
       user: {
-        displayName: user.displayName || user.discogsUsername,
+        displayName: user.displayName || user.discogsConnection.discogsUsername,
         bio: user.bio,
       },
       albums,

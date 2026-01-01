@@ -1,17 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-export default function SettingsPage() {
+function SettingsContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [userData, setUserData] = useState<{
+    hasDiscogsConnection: boolean;
+    discogsUsername?: string | null;
+  } | null>(null);
 
   const [formData, setFormData] = useState({
     displayName: '',
@@ -21,6 +27,31 @@ export default function SettingsPage() {
     itemsPerPage: '50',
     isPublic: 'true',
   });
+
+  // Load user data on mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('/api/user/me');
+        if (response.ok) {
+          const data = await response.json();
+          setUserData(data.user);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user data:', error);
+      }
+    };
+    fetchUserData();
+
+    // Check for success/error messages from query params
+    const success = searchParams.get('success');
+    const error = searchParams.get('error');
+    if (success === 'DiscogsConnected') {
+      setMessage('Discogs account connected successfully!');
+    } else if (error) {
+      setMessage(`Error: ${error}`);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +83,33 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDisconnectDiscogs = async () => {
+    if (!confirm('Are you sure you want to disconnect your Discogs account? Your collection will no longer be accessible until you reconnect.')) {
+      return;
+    }
+
+    setDisconnecting(true);
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/auth/discogs/disconnect', {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        setMessage('Discogs account disconnected successfully!');
+        setUserData((prev) => prev ? { ...prev, hasDiscogsConnection: false, discogsUsername: null } : null);
+        setTimeout(() => router.push('/dashboard'), 1500);
+      } else {
+        setMessage('Failed to disconnect Discogs account');
+      }
+    } catch (error) {
+      setMessage('An error occurred while disconnecting');
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-4">
       <div className="mx-auto max-w-2xl space-y-8 py-8">
@@ -68,6 +126,61 @@ export default function SettingsPage() {
             Customize your collection display and preferences
           </p>
         </div>
+
+        {/* Discogs Connection Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Discogs Connection</CardTitle>
+            <CardDescription>
+              Connect your Discogs account to display your vinyl collection
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {userData?.hasDiscogsConnection ? (
+              <div className="space-y-4">
+                <div className="rounded-lg bg-green-50 border border-green-200 p-4">
+                  <p className="text-sm font-medium text-green-900">
+                    ✓ Connected as <strong>{userData.discogsUsername}</strong>
+                  </p>
+                  <p className="text-xs text-green-700 mt-1">
+                    Your Discogs collection is being displayed on your public page.
+                  </p>
+                </div>
+                <Button
+                  variant="destructive"
+                  onClick={handleDisconnectDiscogs}
+                  disabled={disconnecting}
+                  className="w-full"
+                >
+                  {disconnecting ? 'Disconnecting...' : 'Disconnect Discogs Account'}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-4">
+                  <p className="text-sm font-medium text-yellow-900">
+                    Not connected
+                  </p>
+                  <p className="text-xs text-yellow-700 mt-1">
+                    Connect your Discogs account to display your vinyl collection to visitors.
+                  </p>
+                </div>
+                <Link href="/api/auth/discogs/connect">
+                  <Button className="w-full bg-black hover:bg-neutral-800">
+                    <svg
+                      className="mr-2 h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                    </svg>
+                    Connect Discogs Account
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <form onSubmit={handleSubmit}>
           <Card>
@@ -221,5 +334,13 @@ export default function SettingsPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SettingsContent />
+    </Suspense>
   );
 }

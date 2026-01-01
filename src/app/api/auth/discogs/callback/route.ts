@@ -2,11 +2,11 @@ import OAuth from 'oauth-1.0a';
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { prisma } from '@/lib/db';
-import { encrypt } from '@/lib/encryption';
+import { storeDiscogsTokens } from '@/lib/auth';
 
 /**
  * Handle Discogs OAuth callback
+ * Connects Discogs account to existing authenticated user
  * GET /api/auth/discogs/callback?oauth_token=XXX&oauth_verifier=YYY
  */
 export async function GET(request: NextRequest) {
@@ -19,12 +19,17 @@ export async function GET(request: NextRequest) {
       throw new Error('Missing oauth_token or oauth_verifier');
     }
 
-    // Retrieve token secret from cookie
+    // Retrieve token secret and user ID from cookies
     const cookieStore = await cookies();
     const tokenSecret = cookieStore.get('discogs_token_secret')?.value;
+    const userId = cookieStore.get('discogs_connecting_user')?.value;
 
     if (!tokenSecret) {
       throw new Error('Token secret not found in cookies');
+    }
+
+    if (!userId) {
+      throw new Error('User ID not found in cookies - user must be authenticated first');
     }
 
     // Exchange request token for access token
@@ -102,47 +107,21 @@ export async function GET(request: NextRequest) {
 
     const identity = await identityResponse.json();
 
-    // Create or update user in database
-    const user = await prisma.user.upsert({
-      where: { discogsId: identity.id.toString() },
-      update: {
-        accessToken: encrypt(accessToken),
-        accessTokenSecret: encrypt(accessTokenSecret),
-        discogsUsername: identity.username,
-      },
-      create: {
-        discogsId: identity.id.toString(),
-        discogsUsername: identity.username,
-        accessToken: encrypt(accessToken),
-        accessTokenSecret: encrypt(accessTokenSecret),
-        publicSlug: identity.username.toLowerCase().replace(/[^a-z0-9]/g, '-'),
-        email: identity.email || null,
-      },
-    });
+    // Store Discogs connection for the authenticated user
+    await storeDiscogsTokens(
+      userId,
+      identity.id.toString(),
+      identity.username,
+      accessToken,
+      accessTokenSecret
+    );
 
-    // Create session
-    const session = await prisma.session.create({
-      data: {
-        userId: user.id,
-        sessionToken: crypto.randomUUID(),
-        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-      },
-    });
-
-    // Set session cookie
-    cookieStore.set('session-token', session.sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60, // 30 days
-      path: '/',
-    });
-
-    // Clear temporary token secret cookie
+    // Clear temporary cookies
     cookieStore.delete('discogs_token_secret');
+    cookieStore.delete('discogs_connecting_user');
 
-    // Redirect to dashboard
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/dashboard`);
+    // Redirect to settings page with success message
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/dashboard/settings?success=DiscogsConnected`);
   } catch (error) {
     console.error('Discogs OAuth callback error:', error);
     return NextResponse.redirect(
