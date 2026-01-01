@@ -4,8 +4,11 @@ import HowItWorks from '@/components/landing/HowItWorks';
 import DemoSection from '@/components/landing/DemoSection';
 import FAQ from '@/components/landing/FAQ';
 import Footer from '@/components/landing/Footer';
+import { getSession } from '@/lib/auth';
 
-export default function Home() {
+export default async function Home() {
+  const session = await getSession();
+
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
       <main className="flex-1 flex flex-col items-center px-4 py-16 space-y-24">
@@ -22,11 +25,19 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col gap-4 sm:flex-row justify-center">
-            <Link href="/auth/signin">
-              <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-6">
-                Get Started
-              </Button>
-            </Link>
+            {session ? (
+              <Link href="/dashboard">
+                <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-6">
+                  Go to Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/auth/signin">
+                <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-6">
+                  Get Started
+                </Button>
+              </Link>
+            )}
           </div>
         </section>
 
