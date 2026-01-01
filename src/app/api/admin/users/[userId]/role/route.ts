@@ -9,19 +9,16 @@ import { prisma } from '@/lib/db';
 import { logAdminAction } from '@/lib/admin/audit';
 import { UserRole } from '@prisma/client';
 
-interface RouteParams {
-  params: {
-    userId: string;
-  };
-}
-
 /**
  * PATCH - Update user role (promote to ADMIN or demote to USER)
  */
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ userId: string }> }
+) {
   try {
     const session = await requireAdmin();
-    const { userId } = params;
+    const { userId } = await params;
     const body = await request.json();
     const { role } = body as { role: UserRole };
 

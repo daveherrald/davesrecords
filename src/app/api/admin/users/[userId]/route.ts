@@ -10,19 +10,16 @@ import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { logAdminAction } from '@/lib/admin/audit';
 
-interface RouteParams {
-  params: {
-    userId: string;
-  };
-}
-
 /**
  * GET - Fetch user details
  */
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ userId: string }> }
+) {
   try {
     const session = await requireAdmin();
-    const { userId } = params;
+    const { userId } = await params;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -82,10 +79,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 /**
  * PATCH - Update user settings
  */
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ userId: string }> }
+) {
   try {
     const session = await requireAdmin();
-    const { userId } = params;
+    const { userId } = await params;
     const body = await request.json();
 
     // Validate that user exists
@@ -154,10 +154,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 /**
  * DELETE - Permanently delete user
  */
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ userId: string }> }
+) {
   try {
     const session = await requireAdmin();
-    const { userId } = params;
+    const { userId } = await params;
 
     // Prevent self-deletion
     if (userId === session.user.id) {

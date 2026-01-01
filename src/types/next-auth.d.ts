@@ -1,25 +1,15 @@
-import { DefaultSession } from "next-auth";
+import { DefaultSession } from 'next-auth';
 
-declare module "next-auth" {
-  interface Session {
+declare module 'next-auth' {
+  interface Session extends DefaultSession {
     user: {
       id: string;
       publicSlug: string;
       displayName?: string | null;
       hasDiscogsConnection: boolean;
       discogsUsername?: string | null;
-    } & DefaultSession["user"];
-  }
-
-  interface User {
-    publicSlug?: string;
-    displayName?: string | null;
-  }
-}
-
-declare module "@auth/core/adapters" {
-  interface AdapterUser {
-    publicSlug?: string;
-    displayName?: string | null;
+      role: 'USER' | 'ADMIN';
+      status: 'ACTIVE' | 'BANNED' | 'SUSPENDED';
+    } & DefaultSession['user'];
   }
 }

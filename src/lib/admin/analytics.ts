@@ -22,7 +22,7 @@ export async function trackEvent(params: TrackEventParams): Promise<void> {
     data: {
       eventType: params.eventType,
       userId: params.userId,
-      metadata: params.metadata,
+      metadata: params.metadata as any,
       ipAddress: params.ipAddress,
       userAgent: params.userAgent,
       referer: params.referer,

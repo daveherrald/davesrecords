@@ -29,7 +29,7 @@ export async function logAdminAction(params: LogAdminActionParams): Promise<void
       resourceId: params.resourceId,
       targetUserId: params.targetUserId,
       description: params.description,
-      metadata: params.metadata,
+      metadata: params.metadata as any,
       ipAddress: params.ipAddress,
       userAgent: params.userAgent,
     },

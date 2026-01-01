@@ -9,19 +9,16 @@ import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { logAdminAction } from '@/lib/admin/audit';
 
-interface RouteParams {
-  params: {
-    userId: string;
-  };
-}
-
 /**
  * POST - Ban a user
  */
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ userId: string }> }
+) {
   try {
     const session = await requireAdmin();
-    const { userId } = params;
+    const { userId } = await params;
     const body = await request.json();
     const { reason } = body;
 
@@ -96,10 +93,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 /**
  * DELETE - Unban a user
  */
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ userId: string }> }
+) {
   try {
     const session = await requireAdmin();
-    const { userId } = params;
+    const { userId } = await params;
 
     // Validate that user exists
     const user = await prisma.user.findUnique({
