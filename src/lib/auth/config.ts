@@ -72,10 +72,20 @@ export const authOptions: NextAuthConfig = {
       });
 
       if (fullUser) {
+        // Ensure publicSlug exists, generate if needed
+        let publicSlug = fullUser.publicSlug;
+        if (!publicSlug) {
+          publicSlug = await generateUniqueSlug(fullUser.name, fullUser.email);
+          await prisma.user.update({
+            where: { id: fullUser.id },
+            data: { publicSlug },
+          });
+        }
+
         session.user = {
           ...session.user,
           id: fullUser.id,
-          publicSlug: fullUser.publicSlug,
+          publicSlug: publicSlug,
           displayName: fullUser.displayName,
           hasDiscogsConnection: !!fullUser.discogsConnection,
           discogsUsername: fullUser.discogsConnection?.discogsUsername || null,
