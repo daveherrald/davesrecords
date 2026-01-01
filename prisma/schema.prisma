@@ -57,7 +57,7 @@ model User {
   // User preferences
   displayName  String?
   bio          String?
-  publicSlug   String   @unique  // e.g., "johns-vinyl"
+  publicSlug   String?  @unique  // e.g., "johns-vinyl"
   isPublic     Boolean  @default(true)
 
   // Settings
