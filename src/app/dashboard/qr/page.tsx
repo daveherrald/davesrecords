@@ -23,7 +23,7 @@ export default function QRCodePage() {
           return;
         }
         const data = await response.json();
-        const baseUrl = window.location.origin;
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
         const slug = data.user.publicSlug;
         setCollectionUrl(`${baseUrl}/c/${slug}`);
         setPublicSlug(slug);
