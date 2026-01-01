@@ -84,6 +84,28 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
     fetchAlbumDetails();
   }, [albumId, userSlug]);
 
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    if (!isLightboxOpen || !album) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        setCurrentImageIndex((prev) =>
+          prev === 0 ? album.images.length - 1 : prev - 1
+        );
+      } else if (e.key === 'ArrowRight') {
+        setCurrentImageIndex((prev) =>
+          prev === album.images.length - 1 ? 0 : prev + 1
+        );
+      } else if (e.key === 'Escape') {
+        setIsLightboxOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLightboxOpen, album]);
+
   // Minimum swipe distance (in px) to trigger navigation
   const minSwipeDistance = 50;
 
@@ -326,6 +348,35 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
                   priority
                 />
               </div>
+
+              {/* Navigation arrows - only show if multiple images */}
+              {album.images.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setCurrentImageIndex((prev) =>
+                      prev === 0 ? album.images.length - 1 : prev - 1
+                    )}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-colors z-10"
+                    aria-label="Previous image"
+                  >
+                    <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+
+                  <button
+                    onClick={() => setCurrentImageIndex((prev) =>
+                      prev === album.images.length - 1 ? 0 : prev + 1
+                    )}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-colors z-10"
+                    aria-label="Next image"
+                  >
+                    <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </>
+              )}
 
               {/* Image info overlay */}
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white text-sm px-4 py-2 rounded">
