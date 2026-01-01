@@ -51,6 +51,8 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
   const [imageError, setImageError] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchAlbumDetails = async () => {
@@ -81,6 +83,38 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
 
     fetchAlbumDetails();
   }, [albumId, userSlug]);
+
+  // Minimum swipe distance (in px) to trigger navigation
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd || !album) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      // Swipe left - go to next image
+      setCurrentImageIndex((prev) =>
+        prev === album.images.length - 1 ? 0 : prev + 1
+      );
+    } else if (isRightSwipe) {
+      // Swipe right - go to previous image
+      setCurrentImageIndex((prev) =>
+        prev === 0 ? album.images.length - 1 : prev - 1
+      );
+    }
+  };
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -266,7 +300,12 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
       {isLightboxOpen && album && (
         <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
           <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-none">
-            <div className="relative w-full h-[95vh] flex items-center justify-center">
+            <div
+              className="relative w-full h-[95vh] flex items-center justify-center"
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+            >
               <button
                 onClick={() => setIsLightboxOpen(false)}
                 className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
