@@ -50,6 +50,7 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
   const [error, setError] = useState('');
   const [imageError, setImageError] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   useEffect(() => {
     const fetchAlbumDetails = async () => {
@@ -121,8 +122,9 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
                         alt={`${album.artist} - ${album.title}`}
                         fill
                         sizes="(max-width: 768px) 100vw, 50vw"
-                        className="object-cover"
+                        className="object-cover cursor-zoom-in"
                         onError={() => setImageError(true)}
+                        onClick={() => setIsLightboxOpen(true)}
                         key={currentImageIndex}
                       />
 
@@ -259,6 +261,46 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
           </div>
         ) : null}
       </DialogContent>
+
+      {/* Lightbox for zoomed image */}
+      {isLightboxOpen && album && (
+        <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
+          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-none">
+            <div className="relative w-full h-[95vh] flex items-center justify-center">
+              <button
+                onClick={() => setIsLightboxOpen(false)}
+                className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
+                aria-label="Close lightbox"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              <div className="relative w-full h-full p-8">
+                <Image
+                  src={album.images[currentImageIndex]?.uri || album.coverImage}
+                  alt={`${album.artist} - ${album.title}`}
+                  fill
+                  sizes="95vw"
+                  className="object-contain"
+                  priority
+                />
+              </div>
+
+              {/* Image info overlay */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white text-sm px-4 py-2 rounded">
+                {album.artist} - {album.title}
+                {album.images.length > 1 && (
+                  <span className="ml-3 text-neutral-300">
+                    Image {currentImageIndex + 1} of {album.images.length}
+                  </span>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 }
