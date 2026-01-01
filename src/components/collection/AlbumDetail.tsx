@@ -323,7 +323,7 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
         <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
           <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-none">
             <div
-              className="relative w-full h-[95vh] flex items-center justify-center"
+              className="relative w-full h-[95vh] flex items-center justify-center group"
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}
               onTouchEnd={onTouchEnd}
@@ -356,7 +356,7 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
                     onClick={() => setCurrentImageIndex((prev) =>
                       prev === 0 ? album.images.length - 1 : prev - 1
                     )}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-colors z-10"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-opacity z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100"
                     aria-label="Previous image"
                   >
                     <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -368,7 +368,7 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
                     onClick={() => setCurrentImageIndex((prev) =>
                       prev === album.images.length - 1 ? 0 : prev + 1
                     )}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-colors z-10"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-opacity z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100"
                     aria-label="Next image"
                   >
                     <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
