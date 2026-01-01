@@ -4,6 +4,7 @@ import HowItWorks from '@/components/landing/HowItWorks';
 import DemoSection from '@/components/landing/DemoSection';
 import FAQ from '@/components/landing/FAQ';
 import Footer from '@/components/landing/Footer';
+import { Header } from '@/components/Header';
 import { getSession } from '@/lib/auth';
 
 export default async function Home() {
@@ -11,6 +12,7 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+      <Header />
       <main className="flex-1 flex flex-col items-center px-4 py-16 space-y-24">
         {/* Hero Section */}
         <section className="max-w-4xl text-center space-y-8">

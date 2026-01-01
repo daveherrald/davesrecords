@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CopyButton } from '@/components/CopyButton';
+import { Header } from '@/components/Header';
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -15,8 +16,9 @@ export default async function DashboardPage() {
   const collectionUrl = `${process.env.NEXTAUTH_URL}/c/${session.user.publicSlug}`;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-4">
-      <div className="mx-auto max-w-4xl space-y-8 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+      <Header />
+      <div className="mx-auto max-w-4xl space-y-8 py-8 px-4">
         <div className="space-y-2">
           <h1 className="text-4xl font-bold tracking-tight text-white">
             Welcome, {session.user.displayName || session.user.name}
