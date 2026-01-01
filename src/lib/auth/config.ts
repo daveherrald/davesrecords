@@ -89,6 +89,8 @@ export const authOptions: NextAuthConfig = {
           displayName: fullUser.displayName,
           hasDiscogsConnection: !!fullUser.discogsConnection,
           discogsUsername: fullUser.discogsConnection?.discogsUsername || null,
+          role: fullUser.role,
+          status: fullUser.status,
         };
       }
 

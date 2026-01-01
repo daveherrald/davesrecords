@@ -64,6 +64,13 @@ model User {
   defaultSort  String   @default("artist")
   itemsPerPage Int      @default(50)
 
+  // Admin & moderation fields
+  role         UserRole   @default(USER)
+  status       UserStatus @default(ACTIVE)
+  bannedAt     DateTime?
+  bannedReason String?
+  bannedBy     String?  // User ID of admin who banned
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -71,9 +78,13 @@ model User {
   accounts          Account[]
   sessions          Session[]
   discogsConnection DiscogsConnection?
+  adminActions      AdminAuditLog[] @relation("AdminActor")
+  receivedActions   AdminAuditLog[] @relation("TargetUser")
 
   @@index([publicSlug])
   @@index([email])
+  @@index([role])
+  @@index([status])
 }
 
 // Discogs API connection - separate from authentication
@@ -116,4 +127,77 @@ model CollectionCache {
   version         Int      @default(1)
 
   @@index([discogsUsername])
+}
+
+// Admin audit logging
+model AdminAuditLog {
+  id          String      @id @default(cuid())
+  adminId     String
+  admin       User        @relation("AdminActor", fields: [adminId], references: [id], onDelete: Cascade)
+  action      AdminAction
+  resource    String
+  resourceId  String
+  targetUserId String?
+  targetUser   User?      @relation("TargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  description String
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+
+  @@index([adminId])
+  @@index([targetUserId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// Analytics event tracking
+model AnalyticsEvent {
+  id        String              @id @default(cuid())
+  eventType AnalyticsEventType
+  userId    String?
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
+  referer   String?
+  createdAt DateTime            @default(now())
+
+  @@index([eventType])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// Enums
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+  SUSPENDED
+}
+
+enum AdminAction {
+  USER_PROMOTE
+  USER_DEMOTE
+  USER_BAN
+  USER_UNBAN
+  USER_SUSPEND
+  USER_DELETE
+  USER_EDIT
+  SETTINGS_VIEW
+  ANALYTICS_VIEW
+}
+
+enum AnalyticsEventType {
+  USER_SIGNUP
+  USER_LOGIN
+  PAGE_VIEW
+  API_CALL
+  COLLECTION_VIEW
+  DISCOGS_CONNECT
+  DISCOGS_DISCONNECT
+  ERROR
 }

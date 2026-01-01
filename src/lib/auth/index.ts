@@ -22,6 +22,8 @@ export interface ExtendedSession {
     displayName?: string | null;
     hasDiscogsConnection: boolean;
     discogsUsername?: string | null;
+    role: 'USER' | 'ADMIN';
+    status: 'ACTIVE' | 'BANNED' | 'SUSPENDED';
   };
 }
 
@@ -121,4 +123,39 @@ export async function disconnectDiscogs(userId: string): Promise<void> {
   await prisma.discogsConnection.delete({
     where: { userId },
   });
+}
+
+/**
+ * Check if a user is an admin
+ */
+export async function isAdmin(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+  return user?.role === 'ADMIN';
+}
+
+/**
+ * Require admin role - throws error if not admin
+ */
+export async function requireAdmin(): Promise<ExtendedSession> {
+  const session = await requireAuth();
+
+  if (session.user.role !== 'ADMIN') {
+    throw new Error('Admin access required');
+  }
+
+  return session;
+}
+
+/**
+ * Check if a user account is active (not banned or suspended)
+ */
+export async function isUserActive(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { status: true },
+  });
+  return user?.status === 'ACTIVE';
 }
