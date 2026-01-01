@@ -31,6 +31,13 @@ interface AlbumDetailData {
     title: string;
     duration: string;
   }>;
+  images: Array<{
+    uri: string;
+    uri150: string;
+    type: string;
+    width: number;
+    height: number;
+  }>;
   catalogNumber: string;
   country?: string;
   notes?: string;
@@ -42,6 +49,7 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [imageError, setImageError] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     const fetchAlbumDetails = async () => {
@@ -105,16 +113,53 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Left column - Album art */}
               <div className="space-y-4">
-                <div className="aspect-square relative bg-neutral-200 rounded-lg overflow-hidden shadow-lg">
+                <div className="aspect-square relative bg-neutral-200 rounded-lg overflow-hidden shadow-lg group">
                   {!imageError ? (
-                    <Image
-                      src={album.coverImage}
-                      alt={`${album.artist} - ${album.title}`}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                      className="object-cover"
-                      onError={() => setImageError(true)}
-                    />
+                    <>
+                      <Image
+                        src={album.images[currentImageIndex]?.uri || album.coverImage}
+                        alt={`${album.artist} - ${album.title}`}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        className="object-cover"
+                        onError={() => setImageError(true)}
+                        key={currentImageIndex}
+                      />
+
+                      {/* Navigation buttons - only show if multiple images */}
+                      {album.images.length > 1 && (
+                        <>
+                          <button
+                            onClick={() => setCurrentImageIndex((prev) =>
+                              prev === 0 ? album.images.length - 1 : prev - 1
+                            )}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                            aria-label="Previous image"
+                          >
+                            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                          </button>
+
+                          <button
+                            onClick={() => setCurrentImageIndex((prev) =>
+                              prev === album.images.length - 1 ? 0 : prev + 1
+                            )}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                            aria-label="Next image"
+                          >
+                            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+
+                          {/* Image counter */}
+                          <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                            {currentImageIndex + 1} / {album.images.length}
+                          </div>
+                        </>
+                      )}
+                    </>
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-neutral-300">
                       <svg
