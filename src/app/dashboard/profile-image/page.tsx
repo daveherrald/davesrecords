@@ -6,7 +6,9 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-const GRID_SIZES = [
+const GRID_SIZES: Array<{ value: number | 'all'; label: string; count: number | null }> = [
+  { value: 'all', label: 'All Albums', count: null },
+  { value: 1, label: '1x1', count: 1 },
   { value: 2, label: '2x2', count: 4 },
   { value: 3, label: '3x3', count: 9 },
   { value: 4, label: '4x4', count: 16 },
@@ -15,7 +17,7 @@ const GRID_SIZES = [
 
 export default function ProfileImagePage() {
   const router = useRouter();
-  const [gridSize, setGridSize] = useState(3);
+  const [gridSize, setGridSize] = useState<number | 'all'>('all');
   const [isGenerating, setIsGenerating] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -124,7 +126,7 @@ export default function ProfileImagePage() {
               <label className="text-sm font-medium text-neutral-200">
                 Grid Size
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {GRID_SIZES.map((size) => (
                   <Button
                     key={size.value}
@@ -134,7 +136,9 @@ export default function ProfileImagePage() {
                     className="h-20 flex flex-col items-center justify-center gap-1"
                   >
                     <span className="text-lg font-bold">{size.label}</span>
-                    <span className="text-xs opacity-70">{size.count} albums</span>
+                    {size.count !== null && (
+                      <span className="text-xs opacity-70">{size.count} albums</span>
+                    )}
                   </Button>
                 ))}
               </div>

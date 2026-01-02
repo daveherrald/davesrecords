@@ -16,8 +16,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const { gridSize = 3 } = await request.json();
-    const totalAlbums = gridSize * gridSize;
+    const { gridSize = 'all' } = await request.json();
 
     // Fetch user's collection
     const { albums } = await getUserCollection(session.user.id, 1);
@@ -27,6 +26,20 @@ export async function POST(request: NextRequest) {
         { error: 'No albums in collection' },
         { status: 400 }
       );
+    }
+
+    // Calculate grid size and total albums
+    let actualGridSize: number;
+    let totalAlbums: number;
+
+    if (gridSize === 'all') {
+      // Use all albums and calculate optimal square grid
+      actualGridSize = Math.ceil(Math.sqrt(albums.length));
+      totalAlbums = actualGridSize * actualGridSize;
+    } else {
+      // Use specified grid size
+      actualGridSize = parseInt(gridSize);
+      totalAlbums = actualGridSize * actualGridSize;
     }
 
     // Select random albums
@@ -69,10 +82,10 @@ export async function POST(request: NextRequest) {
     );
 
     // Create composite image
-    const canvasSize = gridSize * imageSize;
+    const canvasSize = actualGridSize * imageSize;
     const compositeOperations = imageBuffers.map((buffer, index) => {
-      const row = Math.floor(index / gridSize);
-      const col = index % gridSize;
+      const row = Math.floor(index / actualGridSize);
+      const col = index % actualGridSize;
 
       return {
         input: buffer,
