@@ -56,25 +56,40 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Get views grouped by day for last 30 days
-    const viewsByDay = await prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
-      SELECT DATE("viewedAt") as date, COUNT(*) as count
-      FROM "CollectionView"
-      WHERE "userId" = ${userId}
-        AND "viewedAt" >= ${thirtyDaysAgo}
-      GROUP BY DATE("viewedAt")
-      ORDER BY date DESC
-    `;
+    // Get all views in last 30 days for grouping by day
+    const last30DaysViews = await prisma.collectionView.findMany({
+      where: {
+        userId,
+        viewedAt: {
+          gte: thirtyDaysAgo,
+        },
+      },
+      select: {
+        viewedAt: true,
+      },
+      orderBy: {
+        viewedAt: 'desc',
+      },
+    });
+
+    // Group views by day
+    const viewsByDayMap = new Map<string, number>();
+    last30DaysViews.forEach(view => {
+      const dateStr = view.viewedAt.toISOString().split('T')[0];
+      viewsByDayMap.set(dateStr, (viewsByDayMap.get(dateStr) || 0) + 1);
+    });
+
+    const viewsByDay = Array.from(viewsByDayMap.entries()).map(([date, count]) => ({
+      date,
+      count,
+    })).sort((a, b) => b.date.localeCompare(a.date));
 
     return NextResponse.json({
       totalViews,
       uniqueVisitors: uniqueVisitors.length,
       recentViewsCount,
       recentViews,
-      viewsByDay: viewsByDay.map(row => ({
-        date: row.date,
-        count: Number(row.count),
-      })),
+      viewsByDay,
     });
   } catch (error) {
     console.error('Stats API error:', error);
