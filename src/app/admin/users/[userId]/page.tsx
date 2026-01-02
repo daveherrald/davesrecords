@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -36,8 +36,10 @@ interface User {
   };
 }
 
-export default function UserDetailPage({ params }: { params: { userId: string } }) {
+export default function UserDetailPage() {
   const router = useRouter();
+  const params = useParams();
+  const userId = params.userId as string;
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -54,11 +56,13 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
 
   useEffect(() => {
+    if (!userId) return;
+
     const fetchUser = async () => {
       try {
         setLoading(true);
-        console.log('Fetching user:', params.userId);
-        const response = await fetch(`/api/admin/users/${params.userId}`, {
+        console.log('Fetching user:', userId);
+        const response = await fetch(`/api/admin/users/${userId}`, {
           credentials: 'include',
         });
 
@@ -82,14 +86,14 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
       } catch (err) {
         console.error('Error fetching user:', err);
         const errorMsg = err instanceof Error ? err.message : 'An error occurred';
-        setError(`${errorMsg} (User ID: ${params.userId})`);
+        setError(`${errorMsg} (User ID: ${userId})`);
       } finally {
         setLoading(false);
       }
     };
 
     fetchUser();
-  }, [params.userId]);
+  }, [userId]);
 
   const handleSaveSettings = async () => {
     if (!user) return;
