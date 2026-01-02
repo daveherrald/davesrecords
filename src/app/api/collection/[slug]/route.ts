@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getUserCollection } from '@/lib/discogs';
 import { getCached, setCached, CACHE_TTL, apiRateLimiter } from '@/lib/cache';
+import { getSession } from '@/lib/auth';
 
 /**
  * GET /api/collection/[slug]
@@ -66,18 +67,30 @@ export async function GET(
       );
     }
 
-    // Check cache
-    const cacheKey = `collection:${slug}:${page}`;
-    const cached = await getCached<any>(cacheKey);
-    if (cached) {
-      return NextResponse.json({
-        ...cached,
-        cached: true,
-      });
+    // Check if viewing own collection
+    const session = await getSession();
+    const isOwnCollection = session?.user?.id === user.id;
+
+    // Check cache (skip cache for own collection to always show current excluded status)
+    if (!isOwnCollection) {
+      const cacheKey = `collection:${slug}:${page}`;
+      const cached = await getCached<any>(cacheKey);
+      if (cached) {
+        return NextResponse.json({
+          ...cached,
+          isOwnCollection: false,
+          cached: true,
+        });
+      }
     }
 
-    // Fetch from Discogs
-    const { albums, pagination } = await getUserCollection(user.id, page);
+    // Fetch from Discogs (include excluded albums if viewing own collection)
+    const { albums, pagination, excludedIds } = await getUserCollection(
+      user.id,
+      page,
+      100,
+      isOwnCollection
+    );
 
     const response = {
       user: {
@@ -87,10 +100,15 @@ export async function GET(
       },
       albums,
       pagination,
+      isOwnCollection,
+      excludedIds: isOwnCollection && excludedIds ? Array.from(excludedIds) : undefined,
     };
 
-    // Cache the response
-    await setCached(cacheKey, response, CACHE_TTL.COLLECTION);
+    // Cache the response (only for public views)
+    if (!isOwnCollection) {
+      const cacheKey = `collection:${slug}:${page}`;
+      await setCached(cacheKey, response, CACHE_TTL.COLLECTION);
+    }
 
     return NextResponse.json({
       ...response,

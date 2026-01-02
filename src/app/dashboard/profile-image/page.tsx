@@ -21,6 +21,7 @@ export default function ProfileImagePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showCustomize, setShowCustomize] = useState(false);
 
   const handleGenerate = async () => {
     try {
@@ -118,32 +119,10 @@ export default function ProfileImagePage() {
           <CardHeader>
             <CardTitle>Generate Collage</CardTitle>
             <CardDescription>
-              Select a grid size and generate a collage from random albums in your collection
+              Create a collage from {gridSize === 'all' ? 'all albums in' : 'random albums from'} your collection
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-neutral-200">
-                Grid Size
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {GRID_SIZES.map((size) => (
-                  <Button
-                    key={size.value}
-                    type="button"
-                    variant={gridSize === size.value ? 'default' : 'outline'}
-                    onClick={() => setGridSize(size.value)}
-                    className="h-20 flex flex-col items-center justify-center gap-1"
-                  >
-                    <span className="text-lg font-bold">{size.label}</span>
-                    {size.count !== null && (
-                      <span className="text-xs opacity-70">{size.count} albums</span>
-                    )}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
+          <CardContent className="space-y-4">
             <Button
               onClick={handleGenerate}
               disabled={isGenerating}
@@ -192,6 +171,47 @@ export default function ProfileImagePage() {
                 </>
               )}
             </Button>
+
+            <button
+              onClick={() => setShowCustomize(!showCustomize)}
+              className="w-full text-sm text-neutral-400 hover:text-neutral-200 transition-colors flex items-center justify-center gap-2"
+            >
+              <svg
+                className={`h-4 w-4 transition-transform ${showCustomize ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+              {showCustomize ? 'Hide' : 'Customize'} Grid Size
+            </button>
+
+            {showCustomize && (
+              <div className="space-y-3 pt-2 border-t border-neutral-700">
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                  {GRID_SIZES.map((size) => (
+                    <Button
+                      key={size.value}
+                      type="button"
+                      variant={gridSize === size.value ? 'default' : 'outline'}
+                      onClick={() => setGridSize(size.value)}
+                      className="h-16 flex flex-col items-center justify-center gap-0.5 text-xs"
+                    >
+                      <span className="font-bold">{size.label}</span>
+                      {size.count !== null && (
+                        <span className="opacity-70">{size.count}</span>
+                      )}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="rounded-lg bg-red-500/10 border border-red-500/50 p-4">

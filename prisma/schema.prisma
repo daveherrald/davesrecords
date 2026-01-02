@@ -81,6 +81,7 @@ model User {
   adminActions      AdminAuditLog[] @relation("AdminActor")
   receivedActions   AdminAuditLog[] @relation("TargetUser")
   collectionViews   CollectionView[]
+  excludedAlbums    ExcludedAlbum[]
 
   @@index([publicSlug])
   @@index([email])
@@ -182,6 +183,18 @@ model CollectionView {
   @@index([userId])
   @@index([viewedAt])
   @@index([visitorId])
+}
+
+// Excluded albums - albums hidden from public gallery
+model ExcludedAlbum {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  releaseId String   // Discogs release ID
+  createdAt DateTime @default(now())
+
+  @@unique([userId, releaseId])
+  @@index([userId])
 }
 
 // Enums

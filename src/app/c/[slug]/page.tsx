@@ -20,6 +20,8 @@ interface CollectionData {
     pages: number;
     items: number;
   };
+  isOwnCollection?: boolean;
+  excludedIds?: string[];
 }
 
 export default function CollectionPage() {
@@ -30,6 +32,7 @@ export default function CollectionPage() {
   const [filteredAlbums, setFilteredAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [excludedSet, setExcludedSet] = useState<Set<string>>(new Set());
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('artist');
@@ -78,6 +81,11 @@ export default function CollectionPage() {
       const collectionData = await response.json();
       setData(collectionData);
       setFilteredAlbums(collectionData.albums);
+
+      // Set excluded albums if viewing own collection
+      if (collectionData.excludedIds) {
+        setExcludedSet(new Set(collectionData.excludedIds));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -95,6 +103,35 @@ export default function CollectionPage() {
     if (filters.genre) count++;
     if (sortBy !== 'artist') count++; // Default is 'artist'
     return count;
+  };
+
+  const toggleExclusion = async (albumId: number) => {
+    const releaseIdStr = albumId.toString();
+    const isCurrentlyExcluded = excludedSet.has(releaseIdStr);
+
+    try {
+      const response = await fetch('/api/user/excluded-albums', {
+        method: isCurrentlyExcluded ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ releaseId: albumId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update exclusion');
+      }
+
+      // Update local state
+      const newSet = new Set(excludedSet);
+      if (isCurrentlyExcluded) {
+        newSet.delete(releaseIdStr);
+      } else {
+        newSet.add(releaseIdStr);
+      }
+      setExcludedSet(newSet);
+    } catch (err) {
+      console.error('Failed to toggle exclusion:', err);
+      // Could show a toast notification here
+    }
   };
 
   const applyFiltersAndSort = () => {
@@ -192,7 +229,13 @@ export default function CollectionPage() {
         </div>
 
         {/* Album Grid - starts immediately */}
-        <AlbumGrid albums={filteredAlbums} userSlug={slug} />
+        <AlbumGrid
+          albums={filteredAlbums}
+          userSlug={slug}
+          isOwnCollection={data?.isOwnCollection}
+          excludedIds={excludedSet}
+          onToggleExclusion={toggleExclusion}
+        />
 
         {/* Empty State */}
         {filteredAlbums.length === 0 && !loading && (

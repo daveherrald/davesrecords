@@ -71,8 +71,9 @@ async function makeDiscogsRequest<T>(
 export async function getUserCollection(
   userId: string,
   page: number = 1,
-  perPage: number = 100
-): Promise<{ albums: Album[]; pagination: DiscogsCollectionResponse['pagination'] }> {
+  perPage: number = 100,
+  includeExcluded: boolean = false
+): Promise<{ albums: Album[]; pagination: DiscogsCollectionResponse['pagination']; excludedIds?: Set<string> }> {
   // Check rate limit
   const { success } = await discogsRateLimiter.limit(userId);
   if (!success) {
@@ -106,28 +107,38 @@ export async function getUserCollection(
     accessTokenSecret
   );
 
-  // Transform to our Album type
-  const albums: Album[] = data.releases.map((item) => {
-    const basicInfo = item.basic_information;
-    return {
-      id: basicInfo.id,
-      instanceId: item.instance_id,
-      title: basicInfo.title,
-      artist: basicInfo.artists.map((a) => a.name).join(', '),
-      year: basicInfo.year,
-      coverImage: basicInfo.cover_image || basicInfo.thumb,
-      thumbnail: basicInfo.thumb,
-      format: basicInfo.formats.map((f) => f.name).join(', '),
-      label: basicInfo.labels[0]?.name || 'Unknown',
-      genres: basicInfo.genres,
-      styles: basicInfo.styles,
-      dateAdded: item.date_added,
-    };
+  // Get excluded album IDs for this user
+  const excludedAlbums = await prisma.excludedAlbum.findMany({
+    where: { userId },
+    select: { releaseId: true },
   });
+  const excludedIds = new Set(excludedAlbums.map((e) => e.releaseId));
+
+  // Transform to our Album type and optionally filter out excluded albums
+  const albums: Album[] = data.releases
+    .filter((item) => includeExcluded || !excludedIds.has(item.basic_information.id.toString()))
+    .map((item) => {
+      const basicInfo = item.basic_information;
+      return {
+        id: basicInfo.id,
+        instanceId: item.instance_id,
+        title: basicInfo.title,
+        artist: basicInfo.artists.map((a) => a.name).join(', '),
+        year: basicInfo.year,
+        coverImage: basicInfo.cover_image || basicInfo.thumb,
+        thumbnail: basicInfo.thumb,
+        format: basicInfo.formats.map((f) => f.name).join(', '),
+        label: basicInfo.labels[0]?.name || 'Unknown',
+        genres: basicInfo.genres,
+        styles: basicInfo.styles,
+        dateAdded: item.date_added,
+      };
+    });
 
   return {
     albums,
     pagination: data.pagination,
+    excludedIds: includeExcluded ? excludedIds : undefined,
   };
 }
 
