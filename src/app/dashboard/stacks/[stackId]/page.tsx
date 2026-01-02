@@ -234,6 +234,11 @@ export default function StackManagePage() {
                   View Public Page
                 </Button>
               </Link>
+              <Link href={`/dashboard/stacks/${stackId}/qr`}>
+                <Button variant="outline">
+                  QR Code
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
