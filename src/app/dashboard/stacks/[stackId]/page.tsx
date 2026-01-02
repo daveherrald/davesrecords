@@ -71,6 +71,7 @@ export default function StackManagePage() {
   useEffect(() => {
     fetchStack();
     fetchRecords();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stackId]);
 
   const fetchStack = async () => {
@@ -207,7 +208,13 @@ export default function StackManagePage() {
   }
 
   if (!stack) {
-    return null;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-4">
+        <div className="mx-auto max-w-4xl py-8">
+          <p className="text-white">Stack not found</p>
+        </div>
+      </div>
+    );
   }
 
   return (

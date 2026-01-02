@@ -42,6 +42,7 @@ export default function AddRecordsPage() {
     fetchStack();
     fetchStackRecords();
     fetchCollection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stackId]);
 
   // Infinite scroll
@@ -59,6 +60,7 @@ export default function AddRecordsPage() {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingMore, hasMore, loading, currentPage]);
 
   const fetchStack = async () => {
