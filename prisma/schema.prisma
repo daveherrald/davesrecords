@@ -83,6 +83,8 @@ model User {
   receivedActions   AdminAuditLog[] @relation("TargetUser")
   collectionViews   CollectionView[]
   excludedAlbums    ExcludedAlbum[]
+  stackCurators     StackCurator[]
+  stackRecords      StackRecord[]
 
   @@index([publicSlug])
   @@index([email])
@@ -198,6 +200,77 @@ model ExcludedAlbum {
   @@index([userId])
 }
 
+// Stack - Physical records in a listening area
+model Stack {
+  id          String    @id @default(cuid())
+  name        String    // "Upstairs Listening Room"
+  slug        String    @unique  // "daves-upstairs"
+  description String?
+  type        StackType @default(PERSONAL)
+  isPublic    Boolean   @default(true)
+
+  // Default sort for this stack
+  defaultSort String    @default("artist")  // artist, year, title, added
+
+  // QR code
+  qrCodeUrl   String?
+
+  // Location context (optional)
+  address     String?
+  city        String?
+
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  curators    StackCurator[]
+  records     StackRecord[]
+
+  @@index([slug])
+  @@index([createdBy])
+  @@index([isPublic])
+}
+
+// Stack curators - users who can manage a stack
+model StackCurator {
+  id       String      @id @default(cuid())
+  stackId  String
+  stack    Stack       @relation(fields: [stackId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     CuratorRole @default(CURATOR)
+  joinedAt DateTime    @default(now())
+
+  @@unique([stackId, userId])
+  @@index([stackId])
+  @@index([userId])
+}
+
+// Stack records - which physical records are in a stack
+model StackRecord {
+  id         String   @id @default(cuid())
+  stackId    String
+  stack      Stack    @relation(fields: [stackId], references: [id], onDelete: Cascade)
+
+  // Who owns this record (Discogs account)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Which specific record from Discogs
+  releaseId  String   // Discogs release ID
+  instanceId String   // Discogs collection instance ID
+
+  // Optional metadata
+  notes      String?
+  addedAt    DateTime @default(now())
+
+  @@unique([stackId, instanceId])
+  @@index([stackId])
+  @@index([userId])
+  @@index([releaseId])
+}
+
 // Enums
 enum UserRole {
   USER
@@ -236,4 +309,18 @@ enum AnalyticsEventType {
 enum AlbumCountDisplay {
   PUBLIC_ONLY
   TOTAL_AND_PUBLIC
+}
+
+enum StackType {
+  PERSONAL
+  COMMERCIAL
+  INSTITUTIONAL
+  PUBLIC
+  OTHER
+}
+
+enum CuratorRole {
+  OWNER
+  CURATOR
+  VIEWER
 }
