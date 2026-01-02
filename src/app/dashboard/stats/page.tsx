@@ -98,7 +98,7 @@ export default function StatsPage() {
           <Card className="bg-neutral-800/50 border-neutral-700">
             <CardHeader className="pb-3">
               <CardDescription className="text-neutral-400">Total Views</CardDescription>
-              <CardTitle className="text-4xl text-white">{stats.totalViews.toLocaleString()}</CardTitle>
+              <CardTitle className="text-4xl text-white">{(stats.totalViews || 0).toLocaleString()}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-sm text-neutral-400">All time</div>
@@ -108,7 +108,7 @@ export default function StatsPage() {
           <Card className="bg-neutral-800/50 border-neutral-700">
             <CardHeader className="pb-3">
               <CardDescription className="text-neutral-400">Unique Visitors</CardDescription>
-              <CardTitle className="text-4xl text-green-400">{stats.uniqueVisitors.toLocaleString()}</CardTitle>
+              <CardTitle className="text-4xl text-green-400">{(stats.uniqueVisitors || 0).toLocaleString()}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-sm text-neutral-400">Distinct IP addresses</div>
@@ -118,7 +118,7 @@ export default function StatsPage() {
           <Card className="bg-neutral-800/50 border-neutral-700">
             <CardHeader className="pb-3">
               <CardDescription className="text-neutral-400">Last 30 Days</CardDescription>
-              <CardTitle className="text-4xl text-blue-400">{stats.recentViewsCount.toLocaleString()}</CardTitle>
+              <CardTitle className="text-4xl text-blue-400">{(stats.recentViewsCount || 0).toLocaleString()}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-sm text-neutral-400">Recent activity</div>
@@ -127,7 +127,7 @@ export default function StatsPage() {
         </div>
 
         {/* Views by Day */}
-        {stats.viewsByDay.length > 0 && (
+        {stats.viewsByDay && stats.viewsByDay.length > 0 && (
           <Card className="bg-neutral-800/50 border-neutral-700">
             <CardHeader>
               <CardTitle className="text-white">Views by Day (Last 30 Days)</CardTitle>
@@ -137,7 +137,9 @@ export default function StatsPage() {
               <div className="space-y-2">
                 {stats.viewsByDay.map((day) => (
                   <div key={day.date} className="flex items-center justify-between py-2 border-b border-neutral-700">
-                    <span className="text-neutral-300">{new Date(day.date).toLocaleDateString()}</span>
+                    <span className="text-neutral-300">
+                      {new Date(day.date + 'T00:00:00').toLocaleDateString()}
+                    </span>
                     <span className="text-white font-semibold">{day.count} views</span>
                   </div>
                 ))}
@@ -153,7 +155,7 @@ export default function StatsPage() {
             <CardDescription className="text-neutral-400">Last 50 collection views</CardDescription>
           </CardHeader>
           <CardContent>
-            {stats.recentViews.length === 0 ? (
+            {!stats.recentViews || stats.recentViews.length === 0 ? (
               <p className="text-center text-neutral-400 py-8">No views yet</p>
             ) : (
               <div className="space-y-3">
