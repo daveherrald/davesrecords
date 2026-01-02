@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { displayName, bio, publicSlug, defaultSort, itemsPerPage, isPublic } = body;
+    const { displayName, bio, publicSlug, defaultSort, itemsPerPage, isPublic, albumCountDisplay } = body;
 
     // Validate public slug uniqueness if it changed
     if (publicSlug && publicSlug !== session.user.publicSlug) {
@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
         defaultSort: defaultSort || 'artist',
         itemsPerPage: itemsPerPage || 50,
         isPublic: isPublic !== undefined ? isPublic : true,
+        albumCountDisplay: albumCountDisplay || 'PUBLIC_ONLY',
       },
     });
 

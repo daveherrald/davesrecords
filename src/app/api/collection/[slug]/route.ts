@@ -38,6 +38,7 @@ export async function GET(
         displayName: true,
         bio: true,
         isPublic: true,
+        albumCountDisplay: true,
         discogsConnection: {
           select: {
             discogsUsername: true,
@@ -92,6 +93,10 @@ export async function GET(
       isOwnCollection
     );
 
+    // Calculate album counts
+    const totalAlbums = pagination.items;
+    const publicAlbums = excludedIds ? totalAlbums - excludedIds.size : totalAlbums;
+
     const response = {
       user: {
         id: user.id,
@@ -102,6 +107,11 @@ export async function GET(
       pagination,
       isOwnCollection,
       excludedIds: isOwnCollection && excludedIds ? Array.from(excludedIds) : undefined,
+      albumCount: {
+        total: totalAlbums,
+        public: publicAlbums,
+        display: user.albumCountDisplay,
+      },
     };
 
     // Cache the response (only for public views)

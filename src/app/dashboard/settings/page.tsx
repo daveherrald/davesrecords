@@ -26,6 +26,7 @@ function SettingsContent() {
     defaultSort: 'artist',
     itemsPerPage: '50',
     isPublic: 'true',
+    albumCountDisplay: 'PUBLIC_ONLY',
   });
 
   // Load user data on mount
@@ -66,6 +67,7 @@ function SettingsContent() {
           ...formData,
           itemsPerPage: parseInt(formData.itemsPerPage, 10),
           isPublic: formData.isPublic === 'true',
+          albumCountDisplay: formData.albumCountDisplay,
         }),
       });
 
@@ -305,6 +307,49 @@ function SettingsContent() {
                     <SelectItem value="false">Private (Only you)</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Album Count Display
+                </label>
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-medium">
+                      Show total album count (including private)
+                    </div>
+                    <div className="text-xs text-neutral-500">
+                      When enabled, shows "109 albums, 105 public" instead of just "105 records"
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={formData.albumCountDisplay === 'TOTAL_AND_PUBLIC'}
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        albumCountDisplay:
+                          formData.albumCountDisplay === 'TOTAL_AND_PUBLIC'
+                            ? 'PUBLIC_ONLY'
+                            : 'TOTAL_AND_PUBLIC',
+                      })
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-400 focus:ring-offset-2 ${
+                      formData.albumCountDisplay === 'TOTAL_AND_PUBLIC'
+                        ? 'bg-neutral-900'
+                        : 'bg-neutral-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        formData.albumCountDisplay === 'TOTAL_AND_PUBLIC'
+                          ? 'translate-x-6'
+                          : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
 
               {message && (

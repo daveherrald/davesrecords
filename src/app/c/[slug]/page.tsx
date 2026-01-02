@@ -22,6 +22,11 @@ interface CollectionData {
   };
   isOwnCollection?: boolean;
   excludedIds?: string[];
+  albumCount?: {
+    total: number;
+    public: number;
+    display: 'PUBLIC_ONLY' | 'TOTAL_AND_PUBLIC';
+  };
 }
 
 export default function CollectionPage() {
@@ -224,7 +229,13 @@ export default function CollectionPage() {
         {/* Minimal Header */}
         <div className="py-3 sm:py-4">
           <h1 className="text-base sm:text-lg font-medium text-white">
-            {data?.user.displayName || 'Vinyl Collection'} • {data?.pagination.items || 0} records
+            {data?.user.displayName || 'Vinyl Collection'} • {
+              data?.albumCount ? (
+                data.albumCount.display === 'TOTAL_AND_PUBLIC'
+                  ? `${data.albumCount.total} albums, ${data.albumCount.public} public`
+                  : `${data.albumCount.public} records`
+              ) : `${data?.pagination.items || 0} records`
+            }
           </h1>
         </div>
 
