@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useSession } from 'next-auth/react';
 
 interface Stack {
   id: string;
@@ -31,15 +33,31 @@ interface Stack {
   };
 }
 
+interface StackRecord {
+  id: string;
+  releaseId: string;
+  instanceId: string;
+  notes: string | null;
+  addedAt: string;
+  userId: string;
+  user: {
+    id: string;
+    displayName: string | null;
+  };
+}
+
 export default function StackManagePage() {
   const params = useParams();
   const router = useRouter();
+  const { data: session } = useSession();
   const stackId = params.stackId as string;
 
   const [stack, setStack] = useState<Stack | null>(null);
+  const [records, setRecords] = useState<StackRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [removing, setRemoving] = useState<Set<string>>(new Set());
 
   const [formData, setFormData] = useState({
     name: '',
@@ -52,6 +70,7 @@ export default function StackManagePage() {
 
   useEffect(() => {
     fetchStack();
+    fetchRecords();
   }, [stackId]);
 
   const fetchStack = async () => {
@@ -105,6 +124,51 @@ export default function StackManagePage() {
       alert('Failed to update stack');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const fetchRecords = async () => {
+    try {
+      const response = await fetch(`/api/stack/${stackId}/records`);
+      if (response.ok) {
+        const data = await response.json();
+        setRecords(data.records);
+      }
+    } catch (error) {
+      console.error('Failed to fetch stack records:', error);
+    }
+  };
+
+  const handleRemoveRecord = async (instanceId: string) => {
+    setRemoving((prev) => new Set(prev).add(instanceId));
+
+    try {
+      const response = await fetch(
+        `/api/stack/${stackId}/records?instanceId=${instanceId}`,
+        { method: 'DELETE' }
+      );
+
+      if (response.ok) {
+        setRecords((prev) => prev.filter((r) => r.instanceId !== instanceId));
+        // Update count
+        if (stack) {
+          setStack({
+            ...stack,
+            _count: { records: stack._count.records - 1 },
+          });
+        }
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to remove record');
+      }
+    } catch (error) {
+      alert('Failed to remove record');
+    } finally {
+      setRemoving((prev) => {
+        const next = new Set(prev);
+        next.delete(instanceId);
+        return next;
+      });
     }
   };
 
@@ -313,6 +377,73 @@ export default function StackManagePage() {
                     <span className="text-neutral-400">Description:</span>{' '}
                     <span className="text-white">{stack.description}</span>
                   </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Records Card */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Records</CardTitle>
+                <CardDescription>
+                  Albums in this stack ({stack._count.records})
+                </CardDescription>
+              </div>
+              <Link href={`/dashboard/stacks/${stackId}/add-records`}>
+                <Button>Add Records</Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {records.length === 0 ? (
+              <div className="text-center py-8 text-neutral-400">
+                <p>No records in this stack yet.</p>
+                <p className="text-sm mt-2">Click "Add Records" to get started.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {records.slice(0, 10).map((record) => {
+                  const isRemoving = removing.has(record.instanceId);
+                  const canRemove =
+                    session?.user?.id === record.userId ||
+                    isOwner;
+
+                  return (
+                    <div
+                      key={record.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50"
+                    >
+                      <div className="flex-1">
+                        <p className="text-white text-sm">Release ID: {record.releaseId}</p>
+                        <p className="text-xs text-neutral-400">
+                          Added by {record.user.displayName || 'Unknown'} on{' '}
+                          {new Date(record.addedAt).toLocaleDateString()}
+                        </p>
+                        {record.notes && (
+                          <p className="text-xs text-neutral-300 mt-1">{record.notes}</p>
+                        )}
+                      </div>
+                      {canRemove && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveRecord(record.instanceId)}
+                          disabled={isRemoving}
+                        >
+                          {isRemoving ? 'Removing...' : 'Remove'}
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+                {records.length > 10 && (
+                  <p className="text-center text-sm text-neutral-400 pt-4">
+                    Showing 10 of {records.length} records
+                  </p>
                 )}
               </div>
             )}

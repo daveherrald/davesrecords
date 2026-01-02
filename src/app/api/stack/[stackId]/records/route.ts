@@ -3,6 +3,71 @@ import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 
 /**
+ * GET /api/stack/[stackId]/records - Get all records in stack
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ stackId: string }> }
+) {
+  try {
+    const { stackId } = await params;
+
+    // Get stack to check if it's public
+    const stack = await prisma.stack.findUnique({
+      where: { id: stackId },
+      select: { isPublic: true },
+    });
+
+    if (!stack) {
+      return NextResponse.json({ error: 'Stack not found' }, { status: 404 });
+    }
+
+    // Check access for private stacks
+    if (!stack.isPublic) {
+      const session = await getSession();
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      }
+
+      const curator = await prisma.stackCurator.findUnique({
+        where: {
+          stackId_userId: {
+            stackId,
+            userId: session.user.id,
+          },
+        },
+      });
+
+      if (!curator) {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      }
+    }
+
+    // Fetch records with user info
+    const records = await prisma.stackRecord.findMany({
+      where: { stackId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            displayName: true,
+          },
+        },
+      },
+      orderBy: { addedAt: 'desc' },
+    });
+
+    return NextResponse.json({ records });
+  } catch (error) {
+    console.error('Failed to fetch stack records:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch stack records' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * POST /api/stack/[stackId]/records - Add record to stack
  */
 export async function POST(
