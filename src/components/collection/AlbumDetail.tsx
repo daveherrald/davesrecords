@@ -401,14 +401,35 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
                 </>
               )}
 
-              {/* Image info overlay */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white text-sm px-4 py-2 rounded">
-                {album.artist} - {album.title}
+              {/* Image info and indicator dots overlay */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
+                {/* Image indicator dots */}
                 {album.images.length > 1 && (
-                  <span className="ml-3 text-neutral-300">
-                    Image {currentImageIndex + 1} of {album.images.length}
-                  </span>
+                  <div className="flex items-center justify-center gap-2">
+                    {album.images.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentImageIndex(index)}
+                        className={`h-2 rounded-full transition-all ${
+                          index === currentImageIndex
+                            ? 'w-8 bg-white'
+                            : 'w-2 bg-neutral-500 hover:bg-neutral-400'
+                        }`}
+                        aria-label={`Go to image ${index + 1}`}
+                      />
+                    ))}
+                  </div>
                 )}
+
+                {/* Image info */}
+                <div className="bg-black/70 text-white text-sm px-4 py-2 rounded whitespace-nowrap">
+                  {album.artist} - {album.title}
+                  {album.images.length > 1 && (
+                    <span className="ml-3 text-neutral-300">
+                      Image {currentImageIndex + 1} of {album.images.length}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </DialogContent>
