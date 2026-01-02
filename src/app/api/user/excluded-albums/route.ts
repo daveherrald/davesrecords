@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { deleteCachedPattern } from '@/lib/cache';
 
 /**
  * GET /api/user/excluded-albums - Get user's excluded album IDs
@@ -54,11 +55,29 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Invalidate collection cache for this user
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { publicSlug: true },
+    });
+
+    if (user?.publicSlug) {
+      await deleteCachedPattern(`collection:${user.publicSlug}:*`);
+    }
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     // Handle unique constraint violation (already excluded)
     if (error.code === 'P2002') {
-      return NextResponse.json({ success: true }); // Already excluded, treat as success
+      // Still invalidate cache even if already excluded
+      const user = await prisma.user.findUnique({
+        where: { id: (await getSession())?.user?.id },
+        select: { publicSlug: true },
+      });
+      if (user?.publicSlug) {
+        await deleteCachedPattern(`collection:${user.publicSlug}:*`);
+      }
+      return NextResponse.json({ success: true });
     }
 
     console.error('Failed to exclude album:', error);
@@ -92,6 +111,16 @@ export async function DELETE(request: NextRequest) {
         releaseId: releaseId.toString(),
       },
     });
+
+    // Invalidate collection cache for this user
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { publicSlug: true },
+    });
+
+    if (user?.publicSlug) {
+      await deleteCachedPattern(`collection:${user.publicSlug}:*`);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

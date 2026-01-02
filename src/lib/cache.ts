@@ -57,6 +57,35 @@ export async function deleteCached(key: string): Promise<void> {
 }
 
 /**
+ * Delete all cache entries matching a pattern
+ * Used to invalidate all pages of a collection
+ */
+export async function deleteCachedPattern(pattern: string): Promise<void> {
+  if (!IS_PRODUCTION) {
+    return; // Skip cache in development
+  }
+  try {
+    // Scan for all keys matching the pattern
+    let cursor: string | number = 0;
+    const keysToDelete: string[] = [];
+
+    do {
+      const [nextCursor, keys] = await kv.scan(cursor, { match: pattern, count: 100 }) as [string | number, string[]];
+      cursor = nextCursor;
+      keysToDelete.push(...keys);
+    } while (cursor !== 0 && cursor !== '0');
+
+    // Delete all matching keys
+    if (keysToDelete.length > 0) {
+      await kv.del(...keysToDelete);
+      console.log(`Invalidated ${keysToDelete.length} cache entries matching ${pattern}`);
+    }
+  } catch (error) {
+    console.error('Cache pattern delete error:', error);
+  }
+}
+
+/**
  * No-op rate limiter for development
  */
 const noopRateLimiter = {
