@@ -242,6 +242,24 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
                   )}
                 </div>
 
+                {/* Image indicator dots */}
+                {album.images.length > 1 && (
+                  <div className="flex items-center justify-center gap-2">
+                    {album.images.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentImageIndex(index)}
+                        className={`h-2 rounded-full transition-all ${
+                          index === currentImageIndex
+                            ? 'w-8 bg-white'
+                            : 'w-2 bg-neutral-500 hover:bg-neutral-400'
+                        }`}
+                        aria-label={`Go to image ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
+
                 {/* Quick info */}
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
