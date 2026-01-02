@@ -21,7 +21,19 @@ export async function Header() {
               >
                 Dashboard
               </Link>
-              <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard/stacks"
+                className="text-sm text-neutral-300 hover:text-white transition-colors"
+              >
+                Stacks
+              </Link>
+              <Link
+                href={`/c/${session.user.publicSlug}`}
+                className="text-sm text-neutral-300 hover:text-white transition-colors"
+              >
+                My Collection
+              </Link>
+              <div className="flex items-center gap-3 border-l border-neutral-700 pl-4">
                 <span className="text-sm text-neutral-400">
                   {session.user.name || session.user.email}
                 </span>
