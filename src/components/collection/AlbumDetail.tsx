@@ -170,7 +170,12 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Left column - Album art */}
               <div className="space-y-4">
-                <div className="aspect-square relative bg-neutral-200 rounded-lg overflow-hidden shadow-lg group">
+                <div
+                  className="aspect-square relative bg-neutral-200 rounded-lg overflow-hidden shadow-lg group"
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={onTouchEnd}
+                >
                   {!imageError ? (
                     <>
                       <Image
