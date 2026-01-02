@@ -13,13 +13,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Debug: Check if prisma.stack exists
-    console.log('[Stack API] Prisma models:', Object.keys(prisma).filter(k => k.charAt(0) === k.charAt(0).toLowerCase()).slice(0, 15));
-    if (!prisma.stack) {
-      console.error('[Stack API] ERROR: prisma.stack is undefined!');
-      return NextResponse.json({ error: 'Stack model not found in Prisma client' }, { status: 500 });
-    }
-
     // Get stacks where user is a curator
     const stacks = await prisma.stack.findMany({
       where: {
