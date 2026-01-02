@@ -81,7 +81,8 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
         setIsPublic(data.isPublic);
       } catch (err) {
         console.error('Error fetching user:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        const errorMsg = err instanceof Error ? err.message : 'An error occurred';
+        setError(`${errorMsg} (User ID: ${params.userId})`);
       } finally {
         setLoading(false);
       }
