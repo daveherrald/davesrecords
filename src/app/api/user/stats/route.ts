@@ -22,11 +22,14 @@ export async function GET(request: NextRequest) {
       where: { userId },
     });
 
-    // Get unique visitor count (by IP)
+    // Get unique visitor count (by visitor ID cookie)
     const uniqueVisitors = await prisma.collectionView.findMany({
-      where: { userId },
-      select: { viewerIp: true },
-      distinct: ['viewerIp'],
+      where: {
+        userId,
+        visitorId: { not: null },
+      },
+      select: { visitorId: true },
+      distinct: ['visitorId'],
     });
 
     // Get views in last 30 days

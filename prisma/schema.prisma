@@ -173,6 +173,7 @@ model CollectionView {
   id          String   @id @default(cuid())
   userId      String   // The user whose collection was viewed
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  visitorId   String?  // Cookie-based unique visitor ID
   viewerIp    String?
   viewerAgent String?
   referer     String?
@@ -180,6 +181,7 @@ model CollectionView {
 
   @@index([userId])
   @@index([viewedAt])
+  @@index([visitorId])
 }
 
 // Enums
