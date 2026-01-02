@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Header } from '@/components/Header';
 
 interface ViewStats {
   totalViews: number;
@@ -54,16 +54,14 @@ export default function StatsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-        <Header />
-        <div className="mx-auto max-w-6xl space-y-8 py-8 px-4">
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-8">
+        <div className="mx-auto max-w-6xl space-y-8">
           <Skeleton className="h-12 w-64 bg-neutral-700" />
           <div className="grid gap-6 md:grid-cols-3">
             {[...Array(3)].map((_, i) => (
               <Skeleton key={i} className="h-32 bg-neutral-700" />
             ))}
           </div>
-          <Skeleton className="h-96 bg-neutral-700" />
         </div>
       </div>
     );
@@ -71,12 +69,14 @@ export default function StatsPage() {
 
   if (error || !stats) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-        <Header />
-        <div className="mx-auto max-w-6xl py-8 px-4">
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-8">
+        <div className="mx-auto max-w-6xl">
           <Card className="bg-red-500/10 border-red-500/50">
             <CardContent className="pt-6">
               <p className="text-red-400">{error || 'Failed to load stats'}</p>
+              <Link href="/dashboard" className="text-blue-400 hover:text-blue-300 mt-4 inline-block">
+                ← Back to Dashboard
+              </Link>
             </CardContent>
           </Card>
         </div>
@@ -85,10 +85,12 @@ export default function StatsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-      <Header />
-      <div className="mx-auto max-w-6xl space-y-8 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-8">
+      <div className="mx-auto max-w-6xl space-y-8">
         <div>
+          <Link href="/dashboard" className="text-blue-400 hover:text-blue-300 mb-4 inline-block">
+            ← Back to Dashboard
+          </Link>
           <h1 className="text-4xl font-bold tracking-tight text-white">Collection Statistics</h1>
           <p className="mt-2 text-lg text-neutral-300">Track how many people are viewing your collection</p>
         </div>
@@ -136,9 +138,9 @@ export default function StatsPage() {
             <CardContent>
               <div className="space-y-2">
                 {stats.viewsByDay.map((day) => (
-                  <div key={day.date} className="flex items-center justify-between py-2 border-b border-neutral-700">
+                  <div key={day.date} className="flex items-center justify-between py-2 border-b border-neutral-700 last:border-0">
                     <span className="text-neutral-300">
-                      {new Date(day.date + 'T00:00:00').toLocaleDateString()}
+                      {day.date}
                     </span>
                     <span className="text-white font-semibold">{day.count} views</span>
                   </div>
@@ -156,9 +158,9 @@ export default function StatsPage() {
           </CardHeader>
           <CardContent>
             {!stats.recentViews || stats.recentViews.length === 0 ? (
-              <p className="text-center text-neutral-400 py-8">No views yet</p>
+              <p className="text-center text-neutral-400 py-8">No views yet. Share your collection link to start tracking views!</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {stats.recentViews.map((view) => (
                   <div key={view.id} className="rounded-lg bg-neutral-900/50 p-4 space-y-2">
                     <div className="flex items-center justify-between">
@@ -170,12 +172,12 @@ export default function StatsPage() {
                       </span>
                     </div>
                     {view.viewerAgent && (
-                      <div className="text-xs text-neutral-500">
+                      <div className="text-xs text-neutral-500 break-all">
                         <strong>User Agent:</strong> {view.viewerAgent}
                       </div>
                     )}
                     {view.referer && (
-                      <div className="text-xs text-neutral-500">
+                      <div className="text-xs text-neutral-500 break-all">
                         <strong>Referer:</strong> {view.referer}
                       </div>
                     )}
