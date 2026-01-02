@@ -45,16 +45,21 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    await logAdminAction({
-      adminId: session.user.id,
-      action: 'SETTINGS_VIEW',
-      resource: 'user',
-      resourceId: userId,
-      targetUserId: userId,
-      description: `Viewed user details for ${user.email || user.name}`,
-      ipAddress: request.headers.get('x-forwarded-for') || undefined,
-      userAgent: request.headers.get('user-agent') || undefined,
-    });
+    // Try to log the action, but don't fail if it errors
+    try {
+      await logAdminAction({
+        adminId: session.user.id,
+        action: 'SETTINGS_VIEW',
+        resource: 'user',
+        resourceId: userId,
+        targetUserId: userId,
+        description: `Viewed user details for ${user.email || user.name}`,
+        ipAddress: request.headers.get('x-forwarded-for') || undefined,
+        userAgent: request.headers.get('user-agent') || undefined,
+      });
+    } catch (logError) {
+      console.error('Failed to log admin action (non-fatal):', logError);
+    }
 
     return NextResponse.json({
       ...user,
@@ -68,11 +73,20 @@ export async function GET(
   } catch (error) {
     console.error('Get user error:', error);
 
+    // Log the full error details
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+
     if (error instanceof Error && error.message === 'Admin access required') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 });
+    return NextResponse.json({
+      error: 'Failed to fetch user',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
