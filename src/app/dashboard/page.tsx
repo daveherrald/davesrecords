@@ -77,6 +77,35 @@ export default async function DashboardPage() {
 
           <Card>
             <CardHeader>
+              <CardTitle>Collection Stats</CardTitle>
+              <CardDescription>
+                See how many people are viewing your collection
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/dashboard/stats">
+                <Button className="w-full">
+                  <svg
+                    className="mr-2 h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    />
+                  </svg>
+                  View Statistics
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>QR Code</CardTitle>
               <CardDescription>
                 Generate a QR code for easy mobile access

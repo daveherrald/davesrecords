@@ -80,6 +80,7 @@ model User {
   discogsConnection DiscogsConnection?
   adminActions      AdminAuditLog[] @relation("AdminActor")
   receivedActions   AdminAuditLog[] @relation("TargetUser")
+  collectionViews   CollectionView[]
 
   @@index([publicSlug])
   @@index([email])
@@ -165,6 +166,20 @@ model AnalyticsEvent {
   @@index([eventType])
   @@index([userId])
   @@index([createdAt])
+}
+
+// Collection view tracking
+model CollectionView {
+  id          String   @id @default(cuid())
+  userId      String   // The user whose collection was viewed
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  viewerIp    String?
+  viewerAgent String?
+  referer     String?
+  viewedAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([viewedAt])
 }
 
 // Enums

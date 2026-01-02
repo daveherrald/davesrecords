@@ -81,6 +81,7 @@ export async function GET(
 
     const response = {
       user: {
+        id: user.id,
         displayName: user.displayName || user.discogsConnection.discogsUsername,
         bio: user.bio,
       },

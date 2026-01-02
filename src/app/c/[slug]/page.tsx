@@ -10,6 +10,7 @@ import type { Album } from '@/types/discogs';
 
 interface CollectionData {
   user: {
+    id: string;
     displayName: string;
     bio: string | null;
   };
@@ -49,6 +50,20 @@ export default function CollectionPage() {
       applyFiltersAndSort();
     }
   }, [data, searchQuery, sortBy, filters]);
+
+  // Track collection view
+  useEffect(() => {
+    if (data?.user?.id) {
+      fetch('/api/analytics/track-view', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: data.user.id }),
+      }).catch((err) => {
+        // Silently fail - tracking is non-critical
+        console.error('Failed to track view:', err);
+      });
+    }
+  }, [data?.user?.id]);
 
   const fetchCollection = async () => {
     try {
