@@ -189,14 +189,14 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
                         key={currentImageIndex}
                       />
 
-                      {/* Navigation buttons - only show if multiple images */}
+                      {/* Navigation buttons - only show if multiple images, desktop only */}
                       {album.images.length > 1 && (
                         <>
                           <button
                             onClick={() => setCurrentImageIndex((prev) =>
                               prev === 0 ? album.images.length - 1 : prev - 1
                             )}
-                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                            className="hidden md:block absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity"
                             aria-label="Previous image"
                           >
                             <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -208,7 +208,7 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
                             onClick={() => setCurrentImageIndex((prev) =>
                               prev === album.images.length - 1 ? 0 : prev + 1
                             )}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                            className="hidden md:block absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity"
                             aria-label="Next image"
                           >
                             <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -372,14 +372,14 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
                 />
               </div>
 
-              {/* Navigation arrows - only show if multiple images */}
+              {/* Navigation arrows - desktop only */}
               {album.images.length > 1 && (
                 <>
                   <button
                     onClick={() => setCurrentImageIndex((prev) =>
                       prev === 0 ? album.images.length - 1 : prev - 1
                     )}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-opacity z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                    className="hidden md:block absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-opacity z-10 opacity-0 group-hover:opacity-100"
                     aria-label="Previous image"
                   >
                     <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -391,7 +391,7 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
                     onClick={() => setCurrentImageIndex((prev) =>
                       prev === album.images.length - 1 ? 0 : prev + 1
                     )}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-opacity z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                    className="hidden md:block absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-opacity z-10 opacity-0 group-hover:opacity-100"
                     aria-label="Next image"
                   >
                     <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
