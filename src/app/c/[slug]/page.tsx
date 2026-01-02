@@ -34,8 +34,12 @@ export default function CollectionPage() {
   const slug = params.slug as string;
 
   const [data, setData] = useState<CollectionData | null>(null);
+  const [allAlbums, setAllAlbums] = useState<Album[]>([]); // All loaded albums
   const [filteredAlbums, setFilteredAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState('');
   const [excludedSet, setExcludedSet] = useState<Set<string>>(new Set());
 
@@ -54,10 +58,10 @@ export default function CollectionPage() {
   }, [slug]);
 
   useEffect(() => {
-    if (data) {
+    if (allAlbums.length > 0) {
       applyFiltersAndSort();
     }
-  }, [data, searchQuery, sortBy, filters]);
+  }, [allAlbums, searchQuery, sortBy, filters]);
 
   // Track collection view
   useEffect(() => {
@@ -73,10 +77,35 @@ export default function CollectionPage() {
     }
   }, [data?.user?.id]);
 
-  const fetchCollection = async () => {
+  // Infinite scroll - load more when reaching bottom
+  useEffect(() => {
+    const handleScroll = () => {
+      if (loadingMore || !hasMore || loading) return;
+
+      const scrollPosition = window.innerHeight + window.scrollY;
+      const bottomPosition = document.documentElement.scrollHeight - 500; // Trigger 500px before bottom
+
+      if (scrollPosition >= bottomPosition) {
+        fetchCollection(currentPage + 1, true);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loadingMore, hasMore, loading, currentPage]);
+
+  const fetchCollection = async (page: number = 1, append: boolean = false) => {
     try {
-      setLoading(true);
-      const response = await fetch(`/api/collection/${slug}`);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setAllAlbums([]);
+        setCurrentPage(1);
+        setHasMore(true);
+      }
+
+      const response = await fetch(`/api/collection/${slug}?page=${page}`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -84,17 +113,27 @@ export default function CollectionPage() {
       }
 
       const collectionData = await response.json();
-      setData(collectionData);
-      setFilteredAlbums(collectionData.albums);
 
-      // Set excluded albums if viewing own collection
-      if (collectionData.excludedIds) {
-        setExcludedSet(new Set(collectionData.excludedIds));
+      // Set metadata on first load
+      if (!append) {
+        setData(collectionData);
+        // Set excluded albums if viewing own collection
+        if (collectionData.excludedIds) {
+          setExcludedSet(new Set(collectionData.excludedIds));
+        }
       }
+
+      // Append or replace albums
+      setAllAlbums(prev => append ? [...prev, ...collectionData.albums] : collectionData.albums);
+
+      // Check if there are more pages
+      setHasMore(collectionData.pagination.page < collectionData.pagination.pages);
+      setCurrentPage(page);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -140,9 +179,9 @@ export default function CollectionPage() {
   };
 
   const applyFiltersAndSort = () => {
-    if (!data) return;
+    if (allAlbums.length === 0) return;
 
-    let filtered = [...data.albums];
+    let filtered = [...allAlbums];
 
     // Apply search
     if (searchQuery) {
@@ -247,6 +286,16 @@ export default function CollectionPage() {
           excludedIds={excludedSet}
           onToggleExclusion={toggleExclusion}
         />
+
+        {/* Loading more indicator */}
+        {loadingMore && (
+          <div className="py-8 text-center">
+            <div className="inline-flex items-center gap-2 text-neutral-400">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-400 border-t-transparent"></div>
+              <span className="text-sm">Loading more...</span>
+            </div>
+          </div>
+        )}
 
         {/* Empty State */}
         {filteredAlbums.length === 0 && !loading && (
