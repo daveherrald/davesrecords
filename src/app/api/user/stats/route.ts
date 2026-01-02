@@ -58,11 +58,11 @@ export async function GET(request: NextRequest) {
 
     // Get views grouped by day for last 30 days
     const viewsByDay = await prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
-      SELECT DATE(viewed_at) as date, COUNT(*) as count
+      SELECT DATE("viewedAt") as date, COUNT(*) as count
       FROM "CollectionView"
-      WHERE user_id = ${userId}
-        AND viewed_at >= ${thirtyDaysAgo}
-      GROUP BY DATE(viewed_at)
+      WHERE "userId" = ${userId}
+        AND "viewedAt" >= ${thirtyDaysAgo}
+      GROUP BY DATE("viewedAt")
       ORDER BY date DESC
     `;
 
