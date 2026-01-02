@@ -57,7 +57,9 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
     const fetchUser = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/admin/users/${params.userId}`);
+        const response = await fetch(`/api/admin/users/${params.userId}`, {
+          credentials: 'include',
+        });
 
         if (!response.ok) {
           throw new Error('Failed to fetch user');
@@ -90,6 +92,7 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
       const response = await fetch(`/api/admin/users/${user.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           displayName,
           bio,
@@ -120,6 +123,7 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
       const response = await fetch(`/api/admin/users/${user.id}/role`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ role: 'ADMIN' }),
       });
 
@@ -143,6 +147,7 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
       const response = await fetch(`/api/admin/users/${user.id}/role`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ role: 'USER' }),
       });
 
@@ -171,6 +176,7 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
       const response = await fetch(`/api/admin/users/${user.id}/ban`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ reason: banReason }),
       });
 
@@ -194,6 +200,7 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
     try {
       const response = await fetch(`/api/admin/users/${user.id}/ban`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -228,6 +235,7 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
     try {
       const response = await fetch(`/api/admin/users/${user.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (!response.ok) {

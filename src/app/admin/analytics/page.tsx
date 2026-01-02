@@ -35,7 +35,9 @@ export default function AnalyticsPage() {
     const fetchAnalytics = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/admin/analytics');
+        const response = await fetch('/api/admin/analytics', {
+          credentials: 'include',
+        });
 
         if (!response.ok) {
           throw new Error('Failed to fetch analytics');

@@ -58,7 +58,9 @@ export default function UsersPage() {
           ...(statusFilter !== 'ALL' && { status: statusFilter }),
         });
 
-        const response = await fetch(`/api/admin/users?${params}`);
+        const response = await fetch(`/api/admin/users?${params}`, {
+          credentials: 'include',
+        });
 
         if (!response.ok) {
           throw new Error('Failed to fetch users');

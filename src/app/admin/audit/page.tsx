@@ -60,7 +60,9 @@ export default function AuditLogPage() {
           ...(selectedAction !== 'ALL' && { action: selectedAction }),
         });
 
-        const response = await fetch(`/api/admin/audit?${params}`);
+        const response = await fetch(`/api/admin/audit?${params}`, {
+          credentials: 'include',
+        });
 
         if (!response.ok) {
           throw new Error('Failed to fetch audit logs');
