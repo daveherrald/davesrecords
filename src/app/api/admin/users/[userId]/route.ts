@@ -139,6 +139,22 @@ export async function PATCH(
         ...(defaultSort !== undefined && { defaultSort }),
         ...(itemsPerPage !== undefined && { itemsPerPage }),
       },
+      include: {
+        discogsConnection: {
+          select: {
+            discogsUsername: true,
+            discogsId: true,
+            connectedAt: true,
+          },
+        },
+        _count: {
+          select: {
+            sessions: true,
+            adminActions: true,
+            receivedActions: true,
+          },
+        },
+      },
     });
 
     await logAdminAction({
@@ -153,7 +169,15 @@ export async function PATCH(
       userAgent: request.headers.get('user-agent') || undefined,
     });
 
-    return NextResponse.json(updatedUser);
+    return NextResponse.json({
+      ...updatedUser,
+      hasDiscogsConnection: !!updatedUser.discogsConnection,
+      actionCounts: {
+        performed: updatedUser._count.adminActions,
+        received: updatedUser._count.receivedActions,
+        sessions: updatedUser._count.sessions,
+      },
+    });
   } catch (error) {
     console.error('Update user error:', error);
 
