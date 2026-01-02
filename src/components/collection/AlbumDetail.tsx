@@ -402,7 +402,7 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
               )}
 
               {/* Image info and indicator dots overlay */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-20">
                 {/* Image indicator dots */}
                 {album.images.length > 1 && (
                   <div className="flex items-center justify-center gap-2">
@@ -410,7 +410,7 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
                       <button
                         key={index}
                         onClick={() => setCurrentImageIndex(index)}
-                        className={`h-2 rounded-full transition-all ${
+                        className={`h-2 rounded-full transition-all z-20 ${
                           index === currentImageIndex
                             ? 'w-8 bg-white'
                             : 'w-2 bg-neutral-500 hover:bg-neutral-400'
