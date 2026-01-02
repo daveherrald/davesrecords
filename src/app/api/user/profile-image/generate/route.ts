@@ -18,10 +18,21 @@ export async function POST(request: NextRequest) {
 
     const { gridSize = 'all' } = await request.json();
 
-    // Fetch user's collection
-    const { albums } = await getUserCollection(session.user.id, 1);
+    // Fetch user's collection - get all albums by fetching multiple pages if needed
+    let allAlbums: any[] = [];
+    let page = 1;
+    let hasMore = true;
 
-    if (albums.length === 0) {
+    while (hasMore) {
+      const { albums, pagination } = await getUserCollection(session.user.id, page, 100);
+      allAlbums.push(...albums);
+
+      // Check if there are more pages
+      hasMore = pagination.page < pagination.pages;
+      page++;
+    }
+
+    if (allAlbums.length === 0) {
       return NextResponse.json(
         { error: 'No albums in collection' },
         { status: 400 }
@@ -34,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     if (gridSize === 'all') {
       // Use all albums and calculate optimal square grid
-      actualGridSize = Math.ceil(Math.sqrt(albums.length));
+      actualGridSize = Math.ceil(Math.sqrt(allAlbums.length));
       totalAlbums = actualGridSize * actualGridSize;
     } else {
       // Use specified grid size
@@ -43,13 +54,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Select random albums
-    const selectedAlbums = albums
+    const selectedAlbums = allAlbums
       .sort(() => Math.random() - 0.5)
       .slice(0, totalAlbums);
 
-    // Ensure we have enough albums
+    // Ensure we have enough albums by repeating albums to fill the grid
     while (selectedAlbums.length < totalAlbums) {
-      selectedAlbums.push(...albums.slice(0, totalAlbums - selectedAlbums.length));
+      selectedAlbums.push(...allAlbums.slice(0, totalAlbums - selectedAlbums.length));
     }
 
     // Download album cover images
