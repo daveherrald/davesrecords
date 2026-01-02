@@ -57,15 +57,21 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
     const fetchUser = async () => {
       try {
         setLoading(true);
+        console.log('Fetching user:', params.userId);
         const response = await fetch(`/api/admin/users/${params.userId}`, {
           credentials: 'include',
         });
 
+        console.log('Response status:', response.status);
+
         if (!response.ok) {
-          throw new Error('Failed to fetch user');
+          const errorData = await response.json();
+          console.error('API Error:', errorData);
+          throw new Error(errorData.error || 'Failed to fetch user');
         }
 
         const data = await response.json();
+        console.log('User data received:', data);
         setUser(data);
 
         // Populate edit form
