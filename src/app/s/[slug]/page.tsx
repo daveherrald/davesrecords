@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Card, CardContent } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import AlbumGrid from '@/components/collection/AlbumGrid';
+import ControlsFAB from '@/components/collection/ControlsFAB';
+import ControlsDrawer from '@/components/collection/ControlsDrawer';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
 import type { Album } from '@/types/discogs';
 
 interface Stack {
@@ -36,26 +36,36 @@ export default function PublicStackPage() {
   const slug = params.slug as string;
 
   const [stack, setStack] = useState<Stack | null>(null);
-  const [albums, setAlbums] = useState<Album[]>([]);
+  const [allAlbums, setAllAlbums] = useState<Album[]>([]);
+  const [filteredAlbums, setFilteredAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('');
+  const [filters, setFilters] = useState({
+    yearFrom: '',
+    yearTo: '',
+    format: '',
+    genre: '',
+  });
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     fetchStack();
   }, [slug]);
 
   useEffect(() => {
-    if (stack?.defaultSort) {
+    if (stack?.defaultSort && !sortBy) {
       setSortBy(stack.defaultSort);
     }
   }, [stack]);
 
   useEffect(() => {
-    if (albums.length > 0) {
-      applySorting();
+    if (allAlbums.length > 0) {
+      applyFiltersAndSort();
     }
-  }, [sortBy]);
+  }, [allAlbums, searchQuery, sortBy, filters]);
 
   const fetchStack = async () => {
     try {
@@ -103,7 +113,7 @@ export default function PublicStackPage() {
 
       const fetchedAlbums = await Promise.all(albumPromises);
       const validAlbums = fetchedAlbums.filter((a) => a !== null) as Album[];
-      setAlbums(validAlbums);
+      setAllAlbums(validAlbums);
     } catch (err) {
       console.error('Failed to fetch stack:', err);
       setError('Failed to load stack');
@@ -112,8 +122,53 @@ export default function PublicStackPage() {
     }
   };
 
-  const applySorting = () => {
-    const sorted = [...albums].sort((a, b) => {
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (searchQuery) count++;
+    if (filters.yearFrom) count++;
+    if (filters.yearTo) count++;
+    if (filters.format) count++;
+    if (filters.genre) count++;
+    if (sortBy && sortBy !== stack?.defaultSort) count++;
+    return count;
+  };
+
+  const applyFiltersAndSort = () => {
+    if (allAlbums.length === 0) return;
+
+    let filtered = [...allAlbums];
+
+    // Apply search
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (album) =>
+          album.title.toLowerCase().includes(query) ||
+          album.artist.toLowerCase().includes(query) ||
+          album.label.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply filters
+    if (filters.yearFrom) {
+      filtered = filtered.filter((album) => album.year >= parseInt(filters.yearFrom));
+    }
+    if (filters.yearTo) {
+      filtered = filtered.filter((album) => album.year <= parseInt(filters.yearTo));
+    }
+    if (filters.format) {
+      filtered = filtered.filter((album) =>
+        album.format.toLowerCase().includes(filters.format.toLowerCase())
+      );
+    }
+    if (filters.genre) {
+      filtered = filtered.filter((album) =>
+        album.genres.some((g) => g.toLowerCase().includes(filters.genre.toLowerCase()))
+      );
+    }
+
+    // Apply sort
+    filtered.sort((a, b) => {
       switch (sortBy) {
         case 'artist':
           return a.artist.localeCompare(b.artist);
@@ -131,21 +186,20 @@ export default function PublicStackPage() {
           return 0;
       }
     });
-    setAlbums(sorted);
+
+    setFilteredAlbums(filtered);
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-4">
-        <div className="mx-auto max-w-7xl py-8">
-          <div className="space-y-4">
-            <Skeleton className="h-12 w-64" />
-            <Skeleton className="h-6 w-96" />
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mt-8">
-              {[...Array(10)].map((_, i) => (
-                <Skeleton key={i} className="aspect-square" />
-              ))}
-            </div>
+        <div className="mx-auto max-w-7xl space-y-8 py-8">
+          <Skeleton className="h-12 w-64" />
+          <Skeleton className="h-8 w-96" />
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-square" />
+            ))}
           </div>
         </div>
       </div>
@@ -155,15 +209,9 @@ export default function PublicStackPage() {
   if (error || !stack) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-4">
-        <div className="mx-auto max-w-7xl py-8">
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-neutral-400 mb-4">{error || 'Stack not found'}</p>
-              <Link href="/" className="text-blue-400 hover:text-blue-300">
-                Go to home
-              </Link>
-            </CardContent>
-          </Card>
+        <div className="mx-auto max-w-7xl py-8 text-center">
+          <h1 className="text-2xl font-bold text-white">Error</h1>
+          <p className="mt-2 text-neutral-300">{error || 'Stack not found'}</p>
         </div>
       </div>
     );
@@ -184,95 +232,63 @@ export default function PublicStackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-4">
-      <div className="mx-auto max-w-7xl space-y-6 py-8">
-        {/* Header */}
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold text-white">{stack.name}</h1>
+    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-3 sm:p-4">
+      <div className="mx-auto max-w-7xl">
+        {/* Minimal Header */}
+        <div className="py-3 sm:py-4">
+          <h1 className="text-base sm:text-lg font-medium text-white">
+            {stack.name} • {filteredAlbums.length} of {allAlbums.length} records
+          </h1>
           {stack.description && (
-            <p className="text-neutral-300 text-lg">{stack.description}</p>
+            <p className="text-sm text-neutral-400 mt-1">{stack.description}</p>
           )}
-          <div className="flex items-center gap-4 text-sm text-neutral-400">
-            <span>{albums.length} records</span>
-            <span>•</span>
-            <span>
-              Curated by{' '}
-              {stack.curators.map((c) => c.user.displayName).filter(Boolean).join(', ') ||
-                'Unknown'}
-            </span>
-          </div>
+          <p className="text-xs text-neutral-500 mt-1">
+            Curated by{' '}
+            {stack.curators.map((c) => c.user.displayName).filter(Boolean).join(', ') ||
+              'Unknown'}
+          </p>
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Sort by..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="artist">Artist (A-Z)</SelectItem>
-                <SelectItem value="artist-desc">Artist (Z-A)</SelectItem>
-                <SelectItem value="year">Year (Newest)</SelectItem>
-                <SelectItem value="year-asc">Year (Oldest)</SelectItem>
-                <SelectItem value="title">Title (A-Z)</SelectItem>
-                <SelectItem value="added">Recently Added</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        {/* Album Grid */}
+        <AlbumGrid albums={filteredAlbums} />
 
-        {/* Albums Grid */}
-        {albums.length === 0 ? (
+        {/* Empty State */}
+        {filteredAlbums.length === 0 && allAlbums.length > 0 && (
+          <div className="py-12 text-center">
+            <p className="text-lg text-neutral-400">
+              No records found matching your criteria
+            </p>
+          </div>
+        )}
+
+        {filteredAlbums.length === 0 && allAlbums.length === 0 && !loading && (
           <Card>
             <CardContent className="py-12 text-center">
               <p className="text-neutral-400">No records in this stack yet</p>
             </CardContent>
           </Card>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {albums.map((album) => (
-              <Card
-                key={album.instanceId}
-                className="group relative overflow-hidden hover:border-neutral-600 transition-all"
-              >
-                <CardContent className="p-0">
-                  <div className="aspect-square relative">
-                    <Image
-                      src={album.coverImage || album.thumbnail}
-                      alt={`${album.artist} - ${album.title}`}
-                      fill
-                      sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                      className="object-cover"
-                      unoptimized
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        <Link
-                          href={`https://www.discogs.com/release/${album.id}`}
-                          target="_blank"
-                          className="text-xs text-blue-400 hover:text-blue-300"
-                        >
-                          View on Discogs →
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-3">
-                    <h3 className="font-medium text-white text-sm truncate">
-                      {album.title}
-                    </h3>
-                    <p className="text-xs text-neutral-400 truncate">{album.artist}</p>
-                    <p className="text-xs text-neutral-500">
-                      {album.year} • {album.format}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
         )}
       </div>
+
+      {/* Floating Action Button */}
+      <ControlsFAB
+        onClick={() => setDrawerOpen(true)}
+        activeFiltersCount={getActiveFiltersCount()}
+      />
+
+      {/* Controls Drawer */}
+      <ControlsDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        filters={filters}
+        onFiltersChange={setFilters}
+        totalResults={filteredAlbums.length}
+        totalRecords={allAlbums.length}
+      />
     </div>
   );
 }
