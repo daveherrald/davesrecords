@@ -138,7 +138,7 @@ export async function getUserCollection(
   return {
     albums,
     pagination: data.pagination,
-    excludedIds: includeExcluded ? excludedIds : undefined,
+    excludedIds, // Always return excludedIds for count calculation
   };
 }
 

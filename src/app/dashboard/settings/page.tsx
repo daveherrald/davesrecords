@@ -311,15 +311,15 @@ function SettingsContent() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">
-                  Album Count Display
+                  Public Album Count Display
                 </label>
                 <div className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
                     <div className="text-sm font-medium">
-                      Show total album count (including private)
+                      Show both total and public album counts to visitors
                     </div>
                     <div className="text-xs text-neutral-500">
-                      When enabled, shows "109 albums, 105 public" instead of just "105 records"
+                      When off, shows only public count ("105 records"). When on, shows "109 albums, 105 public"
                     </div>
                   </div>
                   <button
