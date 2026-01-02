@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Header } from '@/components/Header';
 
 const GRID_SIZES = [
   { value: 2, label: '2x2', count: 4 },
@@ -68,29 +68,42 @@ export default function ProfileImagePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-      <Header />
+      <header className="w-full border-b border-neutral-700/50 bg-neutral-900/50 backdrop-blur-sm">
+        <div className="mx-auto max-w-7xl px-4 py-4 flex items-center justify-between">
+          <Link href="/" className="text-xl font-bold text-white hover:text-neutral-300 transition-colors">
+            Dave&apos;s Records
+          </Link>
+          <Link
+            href="/dashboard"
+            className="text-sm text-neutral-300 hover:text-white transition-colors"
+          >
+            Dashboard
+          </Link>
+        </div>
+      </header>
       <div className="mx-auto max-w-4xl space-y-8 py-8 px-4">
         <div className="space-y-2">
-          <Button
-            variant="ghost"
-            onClick={() => router.push('/dashboard')}
-            className="text-neutral-300 hover:text-white"
-          >
-            <svg
-              className="mr-2 h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          <Link href="/dashboard">
+            <Button
+              variant="ghost"
+              className="text-neutral-300 hover:text-white"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            Back to Dashboard
-          </Button>
+              <svg
+                className="mr-2 h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+              Back to Dashboard
+            </Button>
+          </Link>
           <h1 className="text-4xl font-bold tracking-tight text-white">
             Profile Image Generator
           </h1>
