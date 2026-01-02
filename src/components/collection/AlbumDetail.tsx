@@ -352,7 +352,10 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
               onTouchEnd={onTouchEnd}
             >
               <button
-                onClick={() => setIsLightboxOpen(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsLightboxOpen(false);
+                }}
                 className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
                 aria-label="Close lightbox"
               >
