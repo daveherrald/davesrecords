@@ -4,18 +4,25 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Header } from '@/components/Header';
+
+const GRID_SIZES = [
+  { value: 2, label: '2x2', count: 4 },
+  { value: 3, label: '3x3', count: 9 },
+  { value: 4, label: '4x4', count: 16 },
+  { value: 5, label: '5x5', count: 25 },
+];
 
 export default function ProfileImagePage() {
   const router = useRouter();
-  const [gridSize, setGridSize] = useState('3');
+  const [gridSize, setGridSize] = useState(3);
   const [isGenerating, setIsGenerating] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     try {
+      console.log('Starting generation with grid size:', gridSize);
       setIsGenerating(true);
       setError(null);
       setImageUrl(null);
@@ -25,8 +32,10 @@ export default function ProfileImagePage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ gridSize: parseInt(gridSize) }),
+        body: JSON.stringify({ gridSize }),
       });
+
+      console.log('Response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -36,8 +45,10 @@ export default function ProfileImagePage() {
       // Convert blob to URL for preview
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
+      console.log('Image generated successfully');
       setImageUrl(url);
     } catch (err) {
+      console.error('Generation error:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate image');
     } finally {
       setIsGenerating(false);
@@ -96,21 +107,24 @@ export default function ProfileImagePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="text-sm font-medium text-neutral-200">
                 Grid Size
               </label>
-              <Select value={gridSize} onValueChange={setGridSize}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select grid size" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2">2x2 (4 albums)</SelectItem>
-                  <SelectItem value="3">3x3 (9 albums)</SelectItem>
-                  <SelectItem value="4">4x4 (16 albums)</SelectItem>
-                  <SelectItem value="5">5x5 (25 albums)</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {GRID_SIZES.map((size) => (
+                  <Button
+                    key={size.value}
+                    type="button"
+                    variant={gridSize === size.value ? 'default' : 'outline'}
+                    onClick={() => setGridSize(size.value)}
+                    className="h-20 flex flex-col items-center justify-center gap-1"
+                  >
+                    <span className="text-lg font-bold">{size.label}</span>
+                    <span className="text-xs opacity-70">{size.count} albums</span>
+                  </Button>
+                ))}
+              </div>
             </div>
 
             <Button
