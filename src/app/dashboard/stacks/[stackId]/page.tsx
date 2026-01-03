@@ -67,8 +67,10 @@ export default function StackManagePage() {
   const [editingNotes, setEditingNotes] = useState<Set<string>>(new Set());
   const [notesValues, setNotesValues] = useState<Record<string, string>>({});
   const [selectedAlbum, setSelectedAlbum] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [sortBy, setSortBy] = useState('artist');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number | 'all'>(25);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -307,6 +309,19 @@ export default function StackManagePage() {
     }
   });
 
+  // Pagination
+  const totalRecords = sortedRecords.length;
+  const totalPages = itemsPerPage === 'all' ? 1 : Math.ceil(totalRecords / itemsPerPage);
+  const startIndex = itemsPerPage === 'all' ? 0 : (currentPage - 1) * itemsPerPage;
+  const endIndex = itemsPerPage === 'all' ? totalRecords : startIndex + itemsPerPage;
+  const paginatedRecords = sortedRecords.slice(startIndex, endIndex);
+
+  // Reset to page 1 when changing items per page
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(value === 'all' ? 'all' : parseInt(value));
+    setCurrentPage(1);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-4">
@@ -508,14 +523,19 @@ export default function StackManagePage() {
         {/* Records Card */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Records</CardTitle>
-                <CardDescription>
-                  Albums in this stack ({stack._count.records})
-                </CardDescription>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Records</CardTitle>
+                  <CardDescription>
+                    Albums in this stack ({stack._count.records})
+                  </CardDescription>
+                </div>
+                <Link href={`/dashboard/stacks/${stackId}/add-records`}>
+                  <Button>Add Records</Button>
+                </Link>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Sort by..." />
@@ -547,9 +567,18 @@ export default function StackManagePage() {
                     List
                   </Button>
                 </div>
-                <Link href={`/dashboard/stacks/${stackId}/add-records`}>
-                  <Button>Add Records</Button>
-                </Link>
+                <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10 per page</SelectItem>
+                    <SelectItem value="25">25 per page</SelectItem>
+                    <SelectItem value="50">50 per page</SelectItem>
+                    <SelectItem value="100">100 per page</SelectItem>
+                    <SelectItem value="all">All</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardHeader>
@@ -561,7 +590,7 @@ export default function StackManagePage() {
               </div>
             ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {sortedRecords.map((record) => {
+                {paginatedRecords.map((record) => {
                   const isRemoving = removing.has(record.instanceId);
                   const canRemove = session?.user?.id === record.userId || isOwner;
                   const isEditingNote = editingNotes.has(record.instanceId);
@@ -628,7 +657,7 @@ export default function StackManagePage() {
               </div>
             ) : (
               <div className="space-y-1">
-                {sortedRecords.map((record) => {
+                {paginatedRecords.map((record) => {
                   const isRemoving = removing.has(record.instanceId);
                   const canRemove = session?.user?.id === record.userId || isOwner;
                   const isEditingNote = editingNotes.has(record.instanceId);
@@ -727,6 +756,60 @@ export default function StackManagePage() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-neutral-700">
+                <div className="text-sm text-neutral-400">
+                  Showing {startIndex + 1}-{Math.min(endIndex, totalRecords)} of {totalRecords}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="h-8 px-3"
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          size="sm"
+                          variant={currentPage === pageNum ? 'default' : 'outline'}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="h-8 w-8 p-0"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="h-8 px-3"
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
