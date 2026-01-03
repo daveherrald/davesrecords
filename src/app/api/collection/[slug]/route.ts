@@ -8,6 +8,7 @@ import { getSession } from '@/lib/auth';
  * GET /api/collection/[slug]
  * Fetch a user's collection by their public slug
  * Supports pagination via ?page=1 query param
+ * Supports connection selection via ?connectionId= query param
  */
 export async function GET(
   request: NextRequest,
@@ -17,6 +18,7 @@ export async function GET(
     const { slug } = await params;
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1', 10);
+    const connectionId = searchParams.get('connectionId') || undefined;
 
     // Rate limiting
     const ip = request.headers.get('x-forwarded-for') ||
@@ -41,8 +43,15 @@ export async function GET(
         albumCountDisplay: true,
         discogsConnection: {
           select: {
+            id: true,
             discogsUsername: true,
+            name: true,
+            isPrimary: true,
           },
+          orderBy: [
+            { isPrimary: 'desc' },
+            { connectedAt: 'asc' },
+          ],
         },
       },
     });
@@ -61,7 +70,7 @@ export async function GET(
       );
     }
 
-    if (!user.discogsConnection) {
+    if (user.discogsConnection.length === 0) {
       return NextResponse.json(
         { error: 'This user has not connected their Discogs account' },
         { status: 404 }
@@ -73,8 +82,9 @@ export async function GET(
     const isOwnCollection = session?.user?.id === user.id;
 
     // Check cache (skip cache for own collection to always show current excluded status)
+    // Include connectionId in cache key
     if (!isOwnCollection) {
-      const cacheKey = `collection:${slug}:${page}`;
+      const cacheKey = `collection:${slug}:${page}:${connectionId || 'primary'}`;
       const cached = await getCached<any>(cacheKey);
       if (cached) {
         return NextResponse.json({
@@ -86,21 +96,25 @@ export async function GET(
     }
 
     // Fetch from Discogs (include excluded albums if viewing own collection)
-    const { albums, pagination, excludedIds } = await getUserCollection(
+    const { albums, pagination, excludedIds, connectionId: usedConnectionId, connectionName } = await getUserCollection(
       user.id,
       page,
       100,
-      isOwnCollection
+      isOwnCollection,
+      connectionId
     );
 
     // Calculate album counts
     const totalAlbums = pagination.items;
     const publicAlbums = excludedIds ? totalAlbums - excludedIds.size : totalAlbums;
 
+    // Get primary connection for display name fallback
+    const primaryConnection = user.discogsConnection.find(c => c.isPrimary);
+
     const response = {
       user: {
         id: user.id,
-        displayName: user.displayName || user.discogsConnection.discogsUsername,
+        displayName: user.displayName || primaryConnection?.discogsUsername || user.discogsConnection[0]?.discogsUsername,
         bio: user.bio,
       },
       albums,
@@ -112,11 +126,21 @@ export async function GET(
         public: publicAlbums,
         display: user.albumCountDisplay,
       },
+      connection: {
+        id: usedConnectionId,
+        name: connectionName,
+      },
+      connections: isOwnCollection ? user.discogsConnection.map(c => ({
+        id: c.id,
+        username: c.discogsUsername,
+        name: c.name,
+        isPrimary: c.isPrimary,
+      })) : undefined,
     };
 
     // Cache the response (only for public views)
     if (!isOwnCollection) {
-      const cacheKey = `collection:${slug}:${page}`;
+      const cacheKey = `collection:${slug}:${page}:${connectionId || 'primary'}`;
       await setCached(cacheKey, response, CACHE_TTL.COLLECTION);
     }
 

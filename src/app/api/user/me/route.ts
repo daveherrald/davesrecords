@@ -26,6 +26,7 @@ export async function GET() {
         displayName: session.user.displayName,
         hasDiscogsConnection: session.user.hasDiscogsConnection,
         discogsUsername: session.user.discogsUsername,
+        discogsConnections: session.user.discogsConnections,
       },
     });
   } catch (error) {
