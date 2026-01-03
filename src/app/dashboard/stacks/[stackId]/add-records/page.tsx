@@ -22,6 +22,11 @@ interface StackRecord {
   releaseId: string;
 }
 
+interface StackInstance {
+  stackId: string;
+  stackName: string;
+}
+
 export default function AddRecordsPage() {
   const params = useParams();
   const router = useRouter();
@@ -31,6 +36,7 @@ export default function AddRecordsPage() {
   const [stack, setStack] = useState<Stack | null>(null);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [stackRecords, setStackRecords] = useState<StackRecord[]>([]);
+  const [allStackInstances, setAllStackInstances] = useState<Record<string, StackInstance>>({});
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -41,6 +47,7 @@ export default function AddRecordsPage() {
   useEffect(() => {
     fetchStack();
     fetchStackRecords();
+    fetchAllStackInstances();
     fetchCollection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stackId]);
@@ -86,6 +93,18 @@ export default function AddRecordsPage() {
       }
     } catch (error) {
       console.error('Failed to fetch stack records:', error);
+    }
+  };
+
+  const fetchAllStackInstances = async () => {
+    try {
+      const response = await fetch('/api/stack/instances');
+      if (response.ok) {
+        const data = await response.json();
+        setAllStackInstances(data.instances);
+      }
+    } catch (error) {
+      console.error('Failed to fetch stack instances:', error);
     }
   };
 
@@ -139,6 +158,14 @@ export default function AddRecordsPage() {
         // Add to local stack records list
         const data = await response.json();
         setStackRecords((prev) => [...prev, data.record]);
+        // Add to all stack instances map
+        setAllStackInstances((prev) => ({
+          ...prev,
+          [album.instanceId.toString()]: {
+            stackId: stackId,
+            stackName: stack?.name || 'Stack',
+          },
+        }));
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to add record to stack');
@@ -158,7 +185,16 @@ export default function AddRecordsPage() {
     return stackRecords.some((r) => r.instanceId === instanceId.toString());
   };
 
-  const filteredAlbums = albums.filter((album) =>
+  const getStackInfo = (instanceId: number): StackInstance | null => {
+    return allStackInstances[instanceId.toString()] || null;
+  };
+
+  // Filter to only show albums NOT in any stack
+  const availableAlbums = albums.filter((album) => {
+    return !allStackInstances[album.instanceId.toString()];
+  });
+
+  const filteredAlbums = availableAlbums.filter((album) =>
     searchQuery
       ? album.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         album.artist.toLowerCase().includes(searchQuery.toLowerCase())
@@ -187,8 +223,13 @@ export default function AddRecordsPage() {
           </Link>
           <h1 className="text-4xl font-bold text-white">Add Records to Stack</h1>
           <p className="text-neutral-300 mt-2">
-            Browse your Discogs collection and add records to this stack
+            Showing {filteredAlbums.length} available records not in any stack
           </p>
+          {albums.length > availableAlbums.length && (
+            <p className="text-neutral-500 text-sm mt-1">
+              ({albums.length - availableAlbums.length} records hidden - already in other stacks)
+            </p>
+          )}
         </div>
 
         {/* Search */}
@@ -204,15 +245,12 @@ export default function AddRecordsPage() {
         {/* Albums Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {filteredAlbums.map((album) => {
-            const inStack = isInStack(album.instanceId);
             const isAdding = adding.has(album.instanceId);
 
             return (
               <Card
                 key={album.instanceId}
-                className={`group relative overflow-hidden transition-all ${
-                  inStack ? 'border-green-500 bg-green-950/20' : ''
-                }`}
+                className="group relative overflow-hidden transition-all"
               >
                 <CardContent className="p-0">
                   <div className="aspect-square relative">
@@ -226,20 +264,14 @@ export default function AddRecordsPage() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                       <div className="absolute bottom-0 left-0 right-0 p-3">
-                        {inStack ? (
-                          <div className="text-green-400 text-sm font-medium">
-                            ✓ In Stack
-                          </div>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => handleAddToStack(album)}
-                            disabled={isAdding}
-                            className="w-full"
-                          >
-                            {isAdding ? 'Adding...' : 'Add to Stack'}
-                          </Button>
-                        )}
+                        <Button
+                          size="sm"
+                          onClick={() => handleAddToStack(album)}
+                          disabled={isAdding}
+                          className="w-full"
+                        >
+                          {isAdding ? 'Adding...' : 'Add to Stack'}
+                        </Button>
                       </div>
                     </div>
                   </div>
