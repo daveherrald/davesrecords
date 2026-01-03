@@ -119,6 +119,11 @@ export async function POST(request: NextRequest) {
             },
           },
         },
+        _count: {
+          select: {
+            records: true,
+          },
+        },
       },
     });
 
