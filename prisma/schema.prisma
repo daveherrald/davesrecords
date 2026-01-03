@@ -79,7 +79,7 @@ model User {
   // Relations
   accounts          Account[]
   sessions          Session[]
-  discogsConnection DiscogsConnection?
+  discogsConnection DiscogsConnection[]
   adminActions      AdminAuditLog[] @relation("AdminActor")
   receivedActions   AdminAuditLog[] @relation("TargetUser")
   collectionViews   CollectionView[]
@@ -96,11 +96,16 @@ model User {
 // Discogs API connection - separate from authentication
 model DiscogsConnection {
   id       String @id @default(cuid())
-  userId   String @unique
+  userId   String
   user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   discogsId       String @unique
   discogsUsername String @unique
+
+  // User-defined label for this connection
+  name      String  @default("")
+  // One connection per user should be marked as primary
+  isPrimary Boolean @default(false)
 
   // OAuth tokens (encrypted)
   accessToken       String
@@ -111,6 +116,8 @@ model DiscogsConnection {
 
   @@index([discogsUsername])
   @@index([discogsId])
+  @@index([userId])
+  @@index([userId, isPrimary])
 }
 
 // Session management for NextAuth
