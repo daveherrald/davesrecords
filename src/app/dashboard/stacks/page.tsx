@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -32,10 +33,12 @@ interface Stack {
 
 export default function StacksPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [stacks, setStacks] = useState<Stack[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [addingRecords, setAddingRecords] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -81,7 +84,8 @@ export default function StacksPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setStacks([data.stack, ...stacks]);
+        const newStack = data.stack;
+        setStacks([newStack, ...stacks]);
         setShowCreateForm(false);
         setFormData({
           name: '',
@@ -91,6 +95,31 @@ export default function StacksPage() {
           isPublic: 'true',
           defaultSort: 'artist',
         });
+
+        // Auto-populate with all records from connected Discogs accounts
+        setAddingRecords(true);
+        try {
+          const populateResponse = await fetch(`/api/stack/${newStack.id}/populate`, {
+            method: 'POST',
+          });
+
+          if (populateResponse.ok) {
+            const populateData = await populateResponse.json();
+            // Update the stack count in the UI
+            setStacks((prevStacks) =>
+              prevStacks.map((s) =>
+                s.id === newStack.id
+                  ? { ...s, _count: { records: populateData.added } }
+                  : s
+              )
+            );
+          }
+        } catch (err) {
+          console.error('Failed to populate stack:', err);
+          // Don't show error to user - stack was created successfully
+        } finally {
+          setAddingRecords(false);
+        }
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to create stack');
@@ -136,11 +165,28 @@ export default function StacksPage() {
             </p>
           </div>
           {!showCreateForm && (
-            <Button onClick={() => setShowCreateForm(true)}>
+            <Button
+              onClick={() => setShowCreateForm(true)}
+              disabled={!session?.user?.hasDiscogsConnection}
+            >
               Create Stack
             </Button>
           )}
         </div>
+
+        {/* Discogs Connection Warning */}
+        {!session?.user?.hasDiscogsConnection && (
+          <Card className="border-yellow-900/50 bg-yellow-900/10">
+            <CardContent className="py-4">
+              <p className="text-yellow-200 text-sm">
+                ⚠️ You need to connect a Discogs account before creating stacks.{' '}
+                <Link href="/dashboard/settings" className="underline hover:text-yellow-100">
+                  Connect in Settings →
+                </Link>
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Create Stack Form */}
         {showCreateForm && (
@@ -260,17 +306,23 @@ export default function StacksPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button type="submit" disabled={creating}>
-                    {creating ? 'Creating...' : 'Create Stack'}
+                  <Button type="submit" disabled={creating || addingRecords}>
+                    {creating ? 'Creating...' : addingRecords ? 'Adding records...' : 'Create Stack'}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setShowCreateForm(false)}
+                    disabled={creating || addingRecords}
                   >
                     Cancel
                   </Button>
                 </div>
+                {addingRecords && (
+                  <p className="text-sm text-neutral-400">
+                    Adding all records from your Discogs collection...
+                  </p>
+                )}
               </form>
             </CardContent>
           </Card>
