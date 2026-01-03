@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Album } from '@/types/discogs';
 
 interface Stack {
@@ -43,6 +44,8 @@ export default function AddRecordsPage() {
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [adding, setAdding] = useState<Set<number>>(new Set());
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState('artist');
 
   useEffect(() => {
     fetchStack();
@@ -201,6 +204,26 @@ export default function AddRecordsPage() {
       : true
   );
 
+  // Sort albums
+  const sortedAlbums = [...filteredAlbums].sort((a, b) => {
+    switch (sortBy) {
+      case 'artist':
+        return a.artist.localeCompare(b.artist);
+      case 'artist-desc':
+        return b.artist.localeCompare(a.artist);
+      case 'year':
+        return b.year - a.year;
+      case 'year-asc':
+        return a.year - b.year;
+      case 'title':
+        return a.title.localeCompare(b.title);
+      case 'added':
+        return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
+      default:
+        return 0;
+    }
+  });
+
   if (loading && albums.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-4">
@@ -213,7 +236,7 @@ export default function AddRecordsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-4">
-      <div className="mx-auto max-w-6xl space-y-6 py-8">
+      <div className="mx-auto max-w-6xl space-y-4 py-6">
         {/* Header */}
         <div>
           <Link href={`/dashboard/stacks/${stackId}`}>
@@ -232,61 +255,140 @@ export default function AddRecordsPage() {
           )}
         </div>
 
-        {/* Search */}
-        <div className="flex gap-4">
+        {/* Search and Controls */}
+        <div className="flex gap-2 items-center">
           <Input
             placeholder="Search by artist or album..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="max-w-md"
           />
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Sort by..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="artist">Artist (A-Z)</SelectItem>
+              <SelectItem value="artist-desc">Artist (Z-A)</SelectItem>
+              <SelectItem value="year">Year (Newest)</SelectItem>
+              <SelectItem value="year-asc">Year (Oldest)</SelectItem>
+              <SelectItem value="title">Title (A-Z)</SelectItem>
+              <SelectItem value="added">Recently Added</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="flex gap-1 border border-neutral-700 rounded-lg p-1">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="h-9 px-3"
+            >
+              Grid
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="h-9 px-3"
+            >
+              List
+            </Button>
+          </div>
         </div>
 
-        {/* Albums Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {filteredAlbums.map((album) => {
-            const isAdding = adding.has(album.instanceId);
+        {/* Albums Grid or List */}
+        {viewMode === 'grid' ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            {sortedAlbums.map((album) => {
+              const isAdding = adding.has(album.instanceId);
 
-            return (
-              <Card
-                key={album.instanceId}
-                className="group relative overflow-hidden transition-all"
-              >
-                <CardContent className="p-0">
-                  <div className="aspect-square relative">
+              return (
+                <Card
+                  key={album.instanceId}
+                  className="group relative overflow-hidden transition-all"
+                >
+                  <CardContent className="p-0">
+                    <div className="aspect-square relative">
+                      <Image
+                        src={album.coverImage || album.thumbnail}
+                        alt={`${album.artist} - ${album.title}`}
+                        fill
+                        sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                        className="object-cover"
+                        unoptimized
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute bottom-0 left-0 right-0 p-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleAddToStack(album)}
+                            disabled={isAdding}
+                            className="w-full h-8 text-xs"
+                          >
+                            {isAdding ? 'Adding...' : 'Add'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-2">
+                      <h3 className="font-medium text-white text-xs truncate">
+                        {album.title}
+                      </h3>
+                      <p className="text-xs text-neutral-400 truncate">{album.artist}</p>
+                      <p className="text-xs text-neutral-500">{album.year}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {sortedAlbums.map((album) => {
+              const isAdding = adding.has(album.instanceId);
+
+              return (
+                <div
+                  key={album.instanceId}
+                  className="flex items-center gap-2 p-2 rounded-lg bg-neutral-800/50 hover:bg-neutral-800/70 transition-colors"
+                >
+                  <div className="w-12 h-12 relative flex-shrink-0 rounded overflow-hidden">
                     <Image
-                      src={album.coverImage || album.thumbnail}
+                      src={album.thumbnail || album.coverImage}
                       alt={`${album.artist} - ${album.title}`}
                       fill
-                      sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                      sizes="48px"
                       className="object-cover"
                       unoptimized
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        <Button
-                          size="sm"
-                          onClick={() => handleAddToStack(album)}
-                          disabled={isAdding}
-                          className="w-full"
-                        >
-                          {isAdding ? 'Adding...' : 'Add to Stack'}
-                        </Button>
-                      </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-white text-sm font-medium truncate">
+                        {album.artist}
+                      </p>
+                      <p className="text-neutral-400 text-sm truncate">
+                        {album.title}
+                      </p>
+                      <p className="text-neutral-500 text-xs flex-shrink-0">
+                        {album.year}
+                      </p>
                     </div>
+                    <p className="text-xs text-neutral-500 truncate">{album.format}</p>
                   </div>
-                  <div className="p-3">
-                    <h3 className="font-medium text-white text-sm truncate">
-                      {album.title}
-                    </h3>
-                    <p className="text-xs text-neutral-400 truncate">{album.artist}</p>
-                    <p className="text-xs text-neutral-500">{album.year}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  <Button
+                    size="sm"
+                    onClick={() => handleAddToStack(album)}
+                    disabled={isAdding}
+                    className="h-8 px-3 text-xs"
+                  >
+                    {isAdding ? 'Adding...' : 'Add to Stack'}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Loading More Indicator */}
         {loadingMore && (
