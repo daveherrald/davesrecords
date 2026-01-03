@@ -46,14 +46,29 @@ export default function AddRecordsPage() {
   const [adding, setAdding] = useState<Set<number>>(new Set());
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('artist');
+  const [connections, setConnections] = useState<Array<{
+    id: string;
+    username: string;
+    name: string;
+    isPrimary: boolean;
+  }>>([]);
+  const [selectedConnectionIds, setSelectedConnectionIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchStack();
     fetchStackRecords();
     fetchAllStackInstances();
-    fetchCollection();
+    fetchConnections();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stackId]);
+
+  // Refetch collection when selected connections change
+  useEffect(() => {
+    if (selectedConnectionIds.size > 0) {
+      fetchCollection();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedConnectionIds]);
 
   // Infinite scroll
   useEffect(() => {
@@ -72,6 +87,21 @@ export default function AddRecordsPage() {
     return () => window.removeEventListener('scroll', handleScroll);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingMore, hasMore, loading, currentPage]);
+
+  const fetchConnections = async () => {
+    try {
+      const response = await fetch('/api/auth/discogs/connections');
+      if (response.ok) {
+        const data = await response.json();
+        setConnections(data.connections || []);
+        // Select all connections by default
+        const allIds = (data.connections || []).map((c: any) => c.id);
+        setSelectedConnectionIds(new Set(allIds));
+      }
+    } catch (error) {
+      console.error('Failed to fetch connections:', error);
+    }
+  };
 
   const fetchStack = async () => {
     try {
@@ -121,21 +151,49 @@ export default function AddRecordsPage() {
 
       // Get user's public slug to fetch their own collection
       const userSlug = session?.user?.publicSlug;
-      if (!userSlug) return;
+      if (!userSlug || selectedConnectionIds.size === 0) return;
 
-      const response = await fetch(`/api/collection/${userSlug}?page=${page}`);
-      if (!response.ok) throw new Error('Failed to fetch collection');
+      // Fetch from all selected connections
+      const connectionArray = Array.from(selectedConnectionIds);
+      const promises = connectionArray.map((connectionId) =>
+        fetch(`/api/collection/${userSlug}?page=${page}&connectionId=${connectionId}`)
+          .then((res) => res.json())
+          .catch((err) => {
+            console.error(`Failed to fetch from connection ${connectionId}:`, err);
+            return { albums: [] };
+          })
+      );
 
-      const data = await response.json();
+      const results = await Promise.all(promises);
+
+      // Combine albums from all connections and deduplicate by instanceId
+      const allAlbums: Album[] = [];
+      const seenInstanceIds = new Set<number>();
+
+      for (const data of results) {
+        for (const album of data.albums || []) {
+          if (!seenInstanceIds.has(album.instanceId)) {
+            allAlbums.push(album);
+            seenInstanceIds.add(album.instanceId);
+          }
+        }
+      }
 
       if (append) {
-        setAlbums((prev) => [...prev, ...data.albums]);
+        setAlbums((prev) => {
+          const combined = [...prev, ...allAlbums];
+          // Deduplicate again in case of overlap
+          const uniqueMap = new Map(combined.map((a) => [a.instanceId, a]));
+          return Array.from(uniqueMap.values());
+        });
       } else {
-        setAlbums(data.albums);
+        setAlbums(allAlbums);
       }
 
       setCurrentPage(page);
-      setHasMore(page < data.pagination.pages);
+      // Simplified: assume has more if any connection has more pages
+      const hasMorePages = results.some((data) => data.pagination && page < data.pagination.pages);
+      setHasMore(hasMorePages);
     } catch (error) {
       console.error('Failed to fetch collection:', error);
     } finally {
@@ -265,6 +323,41 @@ export default function AddRecordsPage() {
             </p>
           )}
         </div>
+
+        {/* Connection Filter (if multiple connections) */}
+        {connections.length > 1 && (
+          <div className="bg-neutral-800/50 rounded-lg p-3">
+            <p className="text-sm font-medium text-neutral-300 mb-2">Filter by Account:</p>
+            <div className="flex flex-wrap gap-3">
+              {connections.map((conn) => (
+                <label key={conn.id} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedConnectionIds.has(conn.id)}
+                    onChange={(e) => {
+                      const newSet = new Set(selectedConnectionIds);
+                      if (e.target.checked) {
+                        newSet.add(conn.id);
+                      } else {
+                        newSet.delete(conn.id);
+                      }
+                      setSelectedConnectionIds(newSet);
+                    }}
+                    className="w-4 h-4 rounded border-neutral-600 text-neutral-900 focus:ring-neutral-500"
+                  />
+                  <span className="text-sm text-neutral-300">
+                    {conn.name} {conn.isPrimary && '(Primary)'}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-neutral-500 mt-2">
+              {selectedConnectionIds.size === connections.length
+                ? 'Showing records from all accounts'
+                : `Showing records from ${selectedConnectionIds.size} of ${connections.length} accounts`}
+            </p>
+          </div>
+        )}
 
         {/* Search and Controls */}
         <div className="flex gap-2 items-center">
