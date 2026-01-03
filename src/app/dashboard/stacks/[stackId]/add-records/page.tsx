@@ -298,47 +298,38 @@ export default function AddRecordsPage() {
 
         {/* Albums Grid or List */}
         {viewMode === 'grid' ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {sortedAlbums.map((album) => {
               const isAdding = adding.has(album.instanceId);
 
               return (
-                <Card
+                <div
                   key={album.instanceId}
-                  className="group relative overflow-hidden transition-all"
+                  className="group cursor-pointer overflow-hidden rounded-lg transition-all hover:scale-105 hover:shadow-xl"
                 >
-                  <CardContent className="p-0">
-                    <div className="aspect-square relative">
-                      <Image
-                        src={album.coverImage || album.thumbnail}
-                        alt={`${album.artist} - ${album.title}`}
-                        fill
-                        sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                        className="object-cover"
-                        unoptimized
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="absolute bottom-0 left-0 right-0 p-2">
-                          <Button
-                            size="sm"
-                            onClick={() => handleAddToStack(album)}
-                            disabled={isAdding}
-                            className="w-full h-8 text-xs"
-                          >
-                            {isAdding ? 'Adding...' : 'Add'}
-                          </Button>
-                        </div>
+                  <div className="aspect-square relative bg-neutral-800">
+                    <Image
+                      src={album.coverImage || album.thumbnail}
+                      alt={`${album.artist} - ${album.title}`}
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                      className="object-cover"
+                      unoptimized
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                        <Button
+                          size="sm"
+                          onClick={() => handleAddToStack(album)}
+                          disabled={isAdding}
+                          className="w-full h-8 text-xs"
+                        >
+                          {isAdding ? 'Adding...' : 'Add'}
+                        </Button>
                       </div>
                     </div>
-                    <div className="p-2">
-                      <h3 className="font-medium text-white text-xs truncate">
-                        {album.title}
-                      </h3>
-                      <p className="text-xs text-neutral-400 truncate">{album.artist}</p>
-                      <p className="text-xs text-neutral-500">{album.year}</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               );
             })}
           </div>
