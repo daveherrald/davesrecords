@@ -6,6 +6,7 @@ import AlbumGrid from '@/components/collection/AlbumGrid';
 import ControlsFAB from '@/components/collection/ControlsFAB';
 import ControlsDrawer from '@/components/collection/ControlsDrawer';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Album } from '@/types/discogs';
 
 interface CollectionData {
@@ -27,6 +28,16 @@ interface CollectionData {
     public: number;
     display: 'PUBLIC_ONLY' | 'TOTAL_AND_PUBLIC';
   };
+  connection?: {
+    id: string;
+    name: string;
+  };
+  connections?: Array<{
+    id: string;
+    username: string;
+    name: string;
+    isPrimary: boolean;
+  }>;
 }
 
 export default function CollectionPage() {
@@ -42,6 +53,7 @@ export default function CollectionPage() {
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState('');
   const [excludedSet, setExcludedSet] = useState<Set<string>>(new Set());
+  const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('artist');
@@ -55,7 +67,7 @@ export default function CollectionPage() {
 
   useEffect(() => {
     fetchCollection();
-  }, [slug]);
+  }, [slug, selectedConnectionId]);
 
   useEffect(() => {
     if (allAlbums.length > 0) {
@@ -105,7 +117,8 @@ export default function CollectionPage() {
         setHasMore(true);
       }
 
-      const response = await fetch(`/api/collection/${slug}?page=${page}`);
+      const url = `/api/collection/${slug}?page=${page}${selectedConnectionId ? `&connectionId=${selectedConnectionId}` : ''}`;
+      const response = await fetch(url);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -267,15 +280,37 @@ export default function CollectionPage() {
       <div className="mx-auto max-w-7xl">
         {/* Minimal Header */}
         <div className="py-3 sm:py-4">
-          <h1 className="text-base sm:text-lg font-medium text-white">
-            {data?.user.displayName || 'Vinyl Collection'} • {
-              data?.albumCount ? (
-                data.albumCount.display === 'TOTAL_AND_PUBLIC'
-                  ? `${data.albumCount.total} albums, ${data.albumCount.public} public`
-                  : `${data.albumCount.public} records`
-              ) : `${data?.pagination.items || 0} records`
-            }
-          </h1>
+          <div className="flex items-center justify-between gap-4">
+            <h1 className="text-base sm:text-lg font-medium text-white">
+              {data?.user.displayName || 'Vinyl Collection'} • {
+                data?.albumCount ? (
+                  data.albumCount.display === 'TOTAL_AND_PUBLIC'
+                    ? `${data.albumCount.total} albums, ${data.albumCount.public} public`
+                    : `${data.albumCount.public} records`
+                ) : `${data?.pagination.items || 0} records`
+              }
+            </h1>
+            {/* Connection Selector (only show for own collection with multiple connections) */}
+            {data?.isOwnCollection && data?.connections && data.connections.length > 1 && (
+              <div className="flex items-center gap-2">
+                <Select
+                  value={selectedConnectionId || data.connection?.id}
+                  onValueChange={(value) => setSelectedConnectionId(value)}
+                >
+                  <SelectTrigger className="w-[200px] text-sm">
+                    <SelectValue placeholder="Select account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {data.connections.map((conn) => (
+                      <SelectItem key={conn.id} value={conn.id}>
+                        {conn.name} {conn.isPrimary && '(Primary)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Album Grid - starts immediately */}
