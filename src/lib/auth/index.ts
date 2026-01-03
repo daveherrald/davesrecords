@@ -24,6 +24,12 @@ export interface ExtendedSession {
     discogsUsername?: string | null;
     role: 'USER' | 'ADMIN';
     status: 'ACTIVE' | 'BANNED' | 'SUSPENDED';
+    discogsConnections?: Array<{
+      id: string;
+      username: string;
+      name: string;
+      isPrimary: boolean;
+    }>;
   };
 }
 

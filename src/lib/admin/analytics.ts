@@ -110,7 +110,7 @@ export async function getOverviewStats() {
     where: {
       isPublic: true,
       discogsConnection: {
-        isNot: null,
+        some: {},
       },
     },
   });
@@ -119,7 +119,7 @@ export async function getOverviewStats() {
     where: {
       isPublic: false,
       discogsConnection: {
-        isNot: null,
+        some: {},
       },
     },
   });

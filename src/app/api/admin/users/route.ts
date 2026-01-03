@@ -64,7 +64,12 @@ export async function GET(request: NextRequest) {
         discogsConnection: {
           select: {
             discogsUsername: true,
+            isPrimary: true,
           },
+          orderBy: [
+            { isPrimary: 'desc' },
+            { connectedAt: 'asc' },
+          ],
         },
         _count: {
           select: {
@@ -89,12 +94,15 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({
-      users: users.map((user) => ({
-        ...user,
-        hasDiscogsConnection: !!user.discogsConnection,
-        discogsUsername: user.discogsConnection?.discogsUsername || null,
-        sessionCount: user._count.sessions,
-      })),
+      users: users.map((user) => {
+        const primaryConnection = user.discogsConnection.find(c => c.isPrimary) || user.discogsConnection[0];
+        return {
+          ...user,
+          hasDiscogsConnection: user.discogsConnection.length > 0,
+          discogsUsername: primaryConnection?.discogsUsername || null,
+          sessionCount: user._count.sessions,
+        };
+      }),
       pagination: {
         page,
         limit,

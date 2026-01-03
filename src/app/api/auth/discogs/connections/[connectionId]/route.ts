@@ -7,11 +7,11 @@ import { requireAuth, disconnectDiscogs, setPrimaryConnection, updateConnectionN
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { connectionId: string } }
+  { params }: { params: Promise<{ connectionId: string }> }
 ) {
   try {
     const session = await requireAuth();
-    const { connectionId } = params;
+    const { connectionId } = await params;
 
     await disconnectDiscogs(session.user.id, connectionId);
 
@@ -34,11 +34,11 @@ export async function DELETE(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { connectionId: string } }
+  { params }: { params: Promise<{ connectionId: string }> }
 ) {
   try {
     const session = await requireAuth();
-    const { connectionId } = params;
+    const { connectionId } = await params;
     const body = await request.json();
 
     // Handle setPrimary action
