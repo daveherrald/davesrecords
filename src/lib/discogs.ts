@@ -72,23 +72,43 @@ export async function getUserCollection(
   userId: string,
   page: number = 1,
   perPage: number = 100,
-  includeExcluded: boolean = false
-): Promise<{ albums: Album[]; pagination: DiscogsCollectionResponse['pagination']; excludedIds?: Set<string> }> {
+  includeExcluded: boolean = false,
+  connectionId?: string
+): Promise<{
+  albums: Album[];
+  pagination: DiscogsCollectionResponse['pagination'];
+  excludedIds?: Set<string>;
+  connectionId: string;
+  connectionName: string;
+}> {
   // Check rate limit
   const { success } = await discogsRateLimiter.limit(userId);
   if (!success) {
     throw new Error('Rate limit exceeded. Please try again later.');
   }
 
-  // Get user's Discogs connection
-  const connection = await prisma.discogsConnection.findUnique({
-    where: { userId },
-    select: {
-      accessToken: true,
-      accessTokenSecret: true,
-      discogsUsername: true,
-    },
-  });
+  // Get user's Discogs connection (specific or primary)
+  const connection = connectionId
+    ? await prisma.discogsConnection.findFirst({
+        where: { id: connectionId, userId },
+        select: {
+          id: true,
+          accessToken: true,
+          accessTokenSecret: true,
+          discogsUsername: true,
+          name: true,
+        },
+      })
+    : await prisma.discogsConnection.findFirst({
+        where: { userId, isPrimary: true },
+        select: {
+          id: true,
+          accessToken: true,
+          accessTokenSecret: true,
+          discogsUsername: true,
+          name: true,
+        },
+      });
 
   if (!connection) {
     throw new Error('Discogs account not connected. Please connect your Discogs account in settings.');
@@ -139,6 +159,8 @@ export async function getUserCollection(
     albums,
     pagination: data.pagination,
     excludedIds, // Always return excludedIds for count calculation
+    connectionId: connection.id,
+    connectionName: connection.name,
   };
 }
 
@@ -147,7 +169,8 @@ export async function getUserCollection(
  */
 export async function getAlbumDetails(
   userId: string,
-  releaseId: number
+  releaseId: number,
+  connectionId?: string
 ): Promise<AlbumDetail> {
   // Check cache first
   const cacheKey = `album:${releaseId}`;
@@ -162,14 +185,22 @@ export async function getAlbumDetails(
     throw new Error('Rate limit exceeded. Please try again later.');
   }
 
-  // Get user's Discogs connection
-  const connection = await prisma.discogsConnection.findUnique({
-    where: { userId },
-    select: {
-      accessToken: true,
-      accessTokenSecret: true,
-    },
-  });
+  // Get user's Discogs connection (specific or primary)
+  const connection = connectionId
+    ? await prisma.discogsConnection.findFirst({
+        where: { id: connectionId, userId },
+        select: {
+          accessToken: true,
+          accessTokenSecret: true,
+        },
+      })
+    : await prisma.discogsConnection.findFirst({
+        where: { userId, isPrimary: true },
+        select: {
+          accessToken: true,
+          accessTokenSecret: true,
+        },
+      });
 
   if (!connection) {
     throw new Error('Discogs account not connected. Please connect your Discogs account in settings.');
