@@ -136,6 +136,88 @@ export async function POST(
 }
 
 /**
+ * PATCH /api/stack/[stackId]/records - Update record notes
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ stackId: string }> }
+) {
+  try {
+    const session = await getSession();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const { stackId } = await params;
+    const body = await request.json();
+    const { instanceId, notes } = body;
+
+    if (!instanceId) {
+      return NextResponse.json(
+        { error: 'instanceId is required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if user is a curator
+    const curator = await prisma.stackCurator.findUnique({
+      where: {
+        stackId_userId: {
+          stackId,
+          userId: session.user.id,
+        },
+      },
+    });
+
+    if (!curator || curator.role === 'VIEWER') {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Get the record to check ownership
+    const stackRecord = await prisma.stackRecord.findFirst({
+      where: {
+        stackId,
+        instanceId,
+      },
+    });
+
+    if (!stackRecord) {
+      return NextResponse.json({ error: 'Record not found in stack' }, { status: 404 });
+    }
+
+    // Curators can only edit their own records unless they're OWNER
+    if (stackRecord.userId !== session.user.id && curator.role !== 'OWNER') {
+      return NextResponse.json(
+        { error: 'You can only edit your own records' },
+        { status: 403 }
+      );
+    }
+
+    // Update the record notes
+    const updatedRecord = await prisma.stackRecord.update({
+      where: {
+        stackId_instanceId: {
+          stackId,
+          instanceId,
+        },
+      },
+      data: {
+        notes,
+      },
+    });
+
+    return NextResponse.json({ record: updatedRecord });
+  } catch (error) {
+    console.error('Failed to update record notes:', error);
+    return NextResponse.json(
+      { error: 'Failed to update record notes' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * DELETE /api/stack/[stackId]/records - Remove record from stack
  */
 export async function DELETE(

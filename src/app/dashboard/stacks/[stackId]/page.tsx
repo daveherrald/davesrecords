@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSession } from 'next-auth/react';
+import AlbumDetail from '@/components/collection/AlbumDetail';
+import type { Album } from '@/types/discogs';
 
 interface Stack {
   id: string;
@@ -46,6 +48,10 @@ interface StackRecord {
   };
 }
 
+interface EnrichedRecord extends StackRecord {
+  album?: Album;
+}
+
 export default function StackManagePage() {
   const params = useParams();
   const router = useRouter();
@@ -53,11 +59,15 @@ export default function StackManagePage() {
   const stackId = params.stackId as string;
 
   const [stack, setStack] = useState<Stack | null>(null);
-  const [records, setRecords] = useState<StackRecord[]>([]);
+  const [records, setRecords] = useState<EnrichedRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [removing, setRemoving] = useState<Set<string>>(new Set());
+  const [editingNotes, setEditingNotes] = useState<Set<string>>(new Set());
+  const [notesValues, setNotesValues] = useState<Record<string, string>>({});
+  const [selectedAlbum, setSelectedAlbum] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -133,7 +143,35 @@ export default function StackManagePage() {
       const response = await fetch(`/api/stack/${stackId}/records`);
       if (response.ok) {
         const data = await response.json();
-        setRecords(data.records);
+        const recordsData = data.records;
+
+        // Fetch album details for each record
+        const enrichedRecords = await Promise.all(
+          recordsData.map(async (record: StackRecord) => {
+            try {
+              const albumResponse = await fetch(`/api/release/${record.releaseId}`);
+              if (albumResponse.ok) {
+                const albumData = await albumResponse.json();
+                return {
+                  ...record,
+                  album: albumData,
+                };
+              }
+            } catch (err) {
+              console.error(`Failed to fetch album ${record.releaseId}:`, err);
+            }
+            return record;
+          })
+        );
+
+        setRecords(enrichedRecords);
+
+        // Initialize notes values
+        const notesMap: Record<string, string> = {};
+        enrichedRecords.forEach((record) => {
+          notesMap[record.instanceId] = record.notes || '';
+        });
+        setNotesValues(notesMap);
       }
     } catch (error) {
       console.error('Failed to fetch stack records:', error);
@@ -171,6 +209,55 @@ export default function StackManagePage() {
         return next;
       });
     }
+  };
+
+  const handleEditNotes = (instanceId: string) => {
+    setEditingNotes((prev) => new Set(prev).add(instanceId));
+  };
+
+  const handleSaveNotes = async (instanceId: string, releaseId: string) => {
+    try {
+      const response = await fetch(`/api/stack/${stackId}/records`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instanceId,
+          releaseId,
+          notes: notesValues[instanceId],
+        }),
+      });
+
+      if (response.ok) {
+        setRecords((prev) =>
+          prev.map((r) =>
+            r.instanceId === instanceId
+              ? { ...r, notes: notesValues[instanceId] }
+              : r
+          )
+        );
+        setEditingNotes((prev) => {
+          const next = new Set(prev);
+          next.delete(instanceId);
+          return next;
+        });
+      } else {
+        alert('Failed to save notes');
+      }
+    } catch (error) {
+      alert('Failed to save notes');
+    }
+  };
+
+  const handleCancelEditNotes = (instanceId: string, originalNotes: string | null) => {
+    setNotesValues((prev) => ({
+      ...prev,
+      [instanceId]: originalNotes || '',
+    }));
+    setEditingNotes((prev) => {
+      const next = new Set(prev);
+      next.delete(instanceId);
+      return next;
+    });
   };
 
   const handleDelete = async () => {
@@ -405,9 +492,29 @@ export default function StackManagePage() {
                   Albums in this stack ({stack._count.records})
                 </CardDescription>
               </div>
-              <Link href={`/dashboard/stacks/${stackId}/add-records`}>
-                <Button>Add Records</Button>
-              </Link>
+              <div className="flex gap-2">
+                <div className="flex gap-1 border border-neutral-700 rounded-lg p-1">
+                  <Button
+                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('grid')}
+                    className="h-7 px-2"
+                  >
+                    Grid
+                  </Button>
+                  <Button
+                    variant={viewMode === 'list' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('list')}
+                    className="h-7 px-2"
+                  >
+                    List
+                  </Button>
+                </div>
+                <Link href={`/dashboard/stacks/${stackId}/add-records`}>
+                  <Button>Add Records</Button>
+                </Link>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -416,27 +523,164 @@ export default function StackManagePage() {
                 <p>No records in this stack yet.</p>
                 <p className="text-sm mt-2">Click "Add Records" to get started.</p>
               </div>
+            ) : viewMode === 'grid' ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {records.map((record) => {
+                  const isRemoving = removing.has(record.instanceId);
+                  const canRemove = session?.user?.id === record.userId || isOwner;
+                  const isEditingNote = editingNotes.has(record.instanceId);
+
+                  return (
+                    <div key={record.id} className="group relative">
+                      <div
+                        className="aspect-square relative bg-neutral-800 rounded-lg overflow-hidden cursor-pointer"
+                        onClick={() => record.album && setSelectedAlbum(record.album.id)}
+                      >
+                        {record.album ? (
+                          <>
+                            <Image
+                              src={record.album.thumbnail || record.album.coverImage || '/placeholder-album.png'}
+                              alt={`${record.album.artist} - ${record.album.title}`}
+                              fill
+                              sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                              className="object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="absolute bottom-0 left-0 right-0 p-2">
+                                <p className="text-xs font-semibold text-white line-clamp-1">
+                                  {record.album.artist}
+                                </p>
+                                <p className="text-xs text-neutral-200 line-clamp-1">
+                                  {record.album.title}
+                                </p>
+                                <p className="text-xs text-neutral-300">
+                                  {record.album.year}
+                                </p>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-neutral-600">
+                            <svg className="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      {canRemove && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveRecord(record.instanceId);
+                          }}
+                          disabled={isRemoving}
+                        >
+                          ×
+                        </Button>
+                      )}
+                      {record.notes && !isEditingNote && (
+                        <div className="mt-1 p-1 text-xs text-neutral-400 line-clamp-2">
+                          {record.notes}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
               <div className="space-y-2">
-                {records.slice(0, 10).map((record) => {
+                {records.map((record) => {
                   const isRemoving = removing.has(record.instanceId);
-                  const canRemove =
-                    session?.user?.id === record.userId ||
-                    isOwner;
+                  const canRemove = session?.user?.id === record.userId || isOwner;
+                  const isEditingNote = editingNotes.has(record.instanceId);
 
                   return (
                     <div
                       key={record.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50"
+                      className="flex items-start gap-3 p-3 rounded-lg bg-neutral-800/50 hover:bg-neutral-800/70 transition-colors"
                     >
-                      <div className="flex-1">
-                        <p className="text-white text-sm">Release ID: {record.releaseId}</p>
-                        <p className="text-xs text-neutral-400">
+                      {record.album && (
+                        <div
+                          className="w-16 h-16 relative flex-shrink-0 rounded overflow-hidden cursor-pointer"
+                          onClick={() => setSelectedAlbum(record.album!.id)}
+                        >
+                          <Image
+                            src={record.album.thumbnail || record.album.coverImage || '/placeholder-album.png'}
+                            alt={`${record.album.artist} - ${record.album.title}`}
+                            fill
+                            sizes="64px"
+                            className="object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        {record.album ? (
+                          <>
+                            <p className="text-white font-medium truncate">
+                              {record.album.title}
+                            </p>
+                            <p className="text-sm text-neutral-400 truncate">
+                              {record.album.artist}
+                            </p>
+                            <p className="text-xs text-neutral-500">
+                              {record.album.year} • {record.album.format}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-white text-sm">Release ID: {record.releaseId}</p>
+                        )}
+                        <p className="text-xs text-neutral-500 mt-1">
                           Added by {record.user.displayName || 'Unknown'} on{' '}
                           {new Date(record.addedAt).toLocaleDateString()}
                         </p>
-                        {record.notes && (
-                          <p className="text-xs text-neutral-300 mt-1">{record.notes}</p>
+                        {isEditingNote ? (
+                          <div className="mt-2 space-y-2">
+                            <Input
+                              value={notesValues[record.instanceId] || ''}
+                              onChange={(e) =>
+                                setNotesValues((prev) => ({
+                                  ...prev,
+                                  [record.instanceId]: e.target.value,
+                                }))
+                              }
+                              placeholder="Add notes about this record..."
+                              className="text-sm"
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleSaveNotes(record.instanceId, record.releaseId)}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleCancelEditNotes(record.instanceId, record.notes)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-2">
+                            {record.notes ? (
+                              <p className="text-sm text-neutral-300">{record.notes}</p>
+                            ) : (
+                              <p className="text-xs text-neutral-500 italic">No notes</p>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-xs mt-1 h-6 px-2"
+                              onClick={() => handleEditNotes(record.instanceId)}
+                            >
+                              Edit notes
+                            </Button>
+                          </div>
                         )}
                       </div>
                       {canRemove && (
@@ -445,6 +689,7 @@ export default function StackManagePage() {
                           size="sm"
                           onClick={() => handleRemoveRecord(record.instanceId)}
                           disabled={isRemoving}
+                          className="text-red-400 hover:text-red-300"
                         >
                           {isRemoving ? 'Removing...' : 'Remove'}
                         </Button>
@@ -452,15 +697,18 @@ export default function StackManagePage() {
                     </div>
                   );
                 })}
-                {records.length > 10 && (
-                  <p className="text-center text-sm text-neutral-400 pt-4">
-                    Showing 10 of {records.length} records
-                  </p>
-                )}
               </div>
             )}
           </CardContent>
         </Card>
+
+        {/* Album Detail Modal */}
+        {selectedAlbum && (
+          <AlbumDetail
+            albumId={selectedAlbum}
+            onClose={() => setSelectedAlbum(null)}
+          />
+        )}
 
         {/* Curators Card */}
         <Card>
