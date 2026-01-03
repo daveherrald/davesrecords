@@ -61,6 +61,7 @@ export default function StackManagePage() {
   const [stack, setStack] = useState<Stack | null>(null);
   const [records, setRecords] = useState<EnrichedRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingRecords, setLoadingRecords] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [removing, setRemoving] = useState<Set<string>>(new Set());
@@ -143,6 +144,7 @@ export default function StackManagePage() {
 
   const fetchRecords = async () => {
     try {
+      setLoadingRecords(true);
       const response = await fetch(`/api/stack/${stackId}/records`);
       if (response.ok) {
         const data = await response.json();
@@ -178,6 +180,8 @@ export default function StackManagePage() {
       }
     } catch (error) {
       console.error('Failed to fetch stack records:', error);
+    } finally {
+      setLoadingRecords(false);
     }
   };
 
@@ -326,7 +330,17 @@ export default function StackManagePage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-4">
         <div className="mx-auto max-w-4xl py-8">
-          <p className="text-white">Loading...</p>
+          <div className="flex items-center justify-center gap-2 text-neutral-400 mb-6">
+            <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p>Loading stack...</p>
+          </div>
+          <div className="space-y-4">
+            <div className="h-40 bg-neutral-800 rounded-lg animate-pulse" />
+            <div className="h-96 bg-neutral-800 rounded-lg animate-pulse" />
+          </div>
         </div>
       </div>
     );
@@ -583,7 +597,17 @@ export default function StackManagePage() {
             </div>
           </CardHeader>
           <CardContent>
-            {records.length === 0 ? (
+            {loadingRecords ? (
+              <div className="text-center py-12 text-neutral-400">
+                <div className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <p>Loading records from Discogs...</p>
+                </div>
+              </div>
+            ) : records.length === 0 ? (
               <div className="text-center py-8 text-neutral-400">
                 <p>No records in this stack yet.</p>
                 <p className="text-sm mt-2">Click "Add Records" to get started.</p>
