@@ -59,14 +59,21 @@ export const authOptions: NextAuthConfig = {
 
   callbacks: {
     async session({ session, user }) {
-      // Fetch full user data including Discogs connection
+      // Fetch full user data including all Discogs connections
       const fullUser = await prisma.user.findUnique({
         where: { id: user.id },
         include: {
           discogsConnection: {
             select: {
+              id: true,
               discogsUsername: true,
+              name: true,
+              isPrimary: true,
             },
+            orderBy: [
+              { isPrimary: 'desc' }, // Primary first
+              { connectedAt: 'asc' }, // Then by connection date
+            ],
           },
         },
       });
@@ -82,15 +89,24 @@ export const authOptions: NextAuthConfig = {
           });
         }
 
+        // Find primary connection
+        const primary = fullUser.discogsConnection.find(c => c.isPrimary);
+
         session.user = {
           ...session.user,
           id: fullUser.id,
           publicSlug: publicSlug,
           displayName: fullUser.displayName,
-          hasDiscogsConnection: !!fullUser.discogsConnection,
-          discogsUsername: fullUser.discogsConnection?.discogsUsername || null,
+          hasDiscogsConnection: fullUser.discogsConnection.length > 0,
+          discogsUsername: primary?.discogsUsername || null,
           role: fullUser.role,
           status: fullUser.status,
+          discogsConnections: fullUser.discogsConnection.map(c => ({
+            id: c.id,
+            username: c.discogsUsername,
+            name: c.name,
+            isPrimary: c.isPrimary,
+          })),
         };
       }
 
