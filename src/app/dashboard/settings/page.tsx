@@ -14,6 +14,15 @@ function SettingsContent() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [disconnecting, setDisconnecting] = useState(false);
+  const [connections, setConnections] = useState<Array<{
+    id: string;
+    discogsUsername: string;
+    name: string;
+    isPrimary: boolean;
+    connectedAt: string;
+  }>>([]);
+  const [editingConnectionId, setEditingConnectionId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
   const [userData, setUserData] = useState<{
     hasDiscogsConnection: boolean;
     discogsUsername?: string | null;
@@ -29,26 +38,40 @@ function SettingsContent() {
     albumCountDisplay: 'PUBLIC_ONLY',
   });
 
-  // Load user data on mount
+  // Load user data and connections on mount
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/user/me');
-        if (response.ok) {
-          const data = await response.json();
+        const [userResponse, connectionsResponse] = await Promise.all([
+          fetch('/api/user/me'),
+          fetch('/api/auth/discogs/connections'),
+        ]);
+
+        if (userResponse.ok) {
+          const data = await userResponse.json();
           setUserData(data.user);
         }
+
+        if (connectionsResponse.ok) {
+          const data = await connectionsResponse.json();
+          setConnections(data.connections || []);
+        }
       } catch (error) {
-        console.error('Failed to fetch user data:', error);
+        console.error('Failed to fetch data:', error);
       }
     };
-    fetchUserData();
+    fetchData();
 
     // Check for success/error messages from query params
     const success = searchParams.get('success');
     const error = searchParams.get('error');
     if (success === 'DiscogsConnected') {
       setMessage('Discogs account connected successfully!');
+      // Refetch connections after successful connection
+      fetch('/api/auth/discogs/connections')
+        .then(res => res.json())
+        .then(data => setConnections(data.connections || []))
+        .catch(console.error);
     } else if (error) {
       setMessage(`Error: ${error}`);
     }
@@ -85,8 +108,8 @@ function SettingsContent() {
     }
   };
 
-  const handleDisconnectDiscogs = async () => {
-    if (!confirm('Are you sure you want to disconnect your Discogs account? Your collection will no longer be accessible until you reconnect.')) {
+  const handleDisconnectConnection = async (connectionId: string, connectionName: string) => {
+    if (!confirm(`Are you sure you want to disconnect "${connectionName}"? This collection will no longer be accessible until you reconnect.`)) {
       return;
     }
 
@@ -94,21 +117,83 @@ function SettingsContent() {
     setMessage('');
 
     try {
-      const response = await fetch('/api/auth/discogs/disconnect', {
-        method: 'POST',
+      const response = await fetch(`/api/auth/discogs/connections/${connectionId}`, {
+        method: 'DELETE',
       });
 
       if (response.ok) {
-        setMessage('Discogs account disconnected successfully!');
-        setUserData((prev) => prev ? { ...prev, hasDiscogsConnection: false, discogsUsername: null } : null);
-        setTimeout(() => router.push('/dashboard'), 1500);
+        setMessage('Connection disconnected successfully!');
+        // Refetch connections
+        const connectionsResponse = await fetch('/api/auth/discogs/connections');
+        if (connectionsResponse.ok) {
+          const data = await connectionsResponse.json();
+          setConnections(data.connections || []);
+        }
+        // Refresh user data to update hasDiscogsConnection
+        const userResponse = await fetch('/api/user/me');
+        if (userResponse.ok) {
+          const data = await userResponse.json();
+          setUserData(data.user);
+        }
       } else {
-        setMessage('Failed to disconnect Discogs account');
+        setMessage('Failed to disconnect connection');
       }
     } catch (error) {
       setMessage('An error occurred while disconnecting');
     } finally {
       setDisconnecting(false);
+    }
+  };
+
+  const handleSetPrimary = async (connectionId: string) => {
+    try {
+      const response = await fetch(`/api/auth/discogs/connections/${connectionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setPrimary: true }),
+      });
+
+      if (response.ok) {
+        setMessage('Primary connection updated!');
+        // Refetch connections
+        const connectionsResponse = await fetch('/api/auth/discogs/connections');
+        if (connectionsResponse.ok) {
+          const data = await connectionsResponse.json();
+          setConnections(data.connections || []);
+        }
+      } else {
+        setMessage('Failed to update primary connection');
+      }
+    } catch (error) {
+      setMessage('An error occurred');
+    }
+  };
+
+  const handleSaveName = async (connectionId: string) => {
+    if (!editingName.trim()) return;
+
+    try {
+      const response = await fetch(`/api/auth/discogs/connections/${connectionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editingName }),
+      });
+
+      if (response.ok) {
+        setMessage('Connection name updated!');
+        // Refetch connections
+        const connectionsResponse = await fetch('/api/auth/discogs/connections');
+        if (connectionsResponse.ok) {
+          const data = await connectionsResponse.json();
+          setConnections(data.connections || []);
+        }
+        setEditingConnectionId(null);
+        setEditingName('');
+      } else {
+        setMessage('Failed to update connection name');
+      }
+    } catch (error) {
+      setMessage('An error occurred');
     }
   };
 
@@ -129,39 +214,20 @@ function SettingsContent() {
           </p>
         </div>
 
-        {/* Discogs Connection Card */}
+        {/* Discogs Connections Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Discogs Connection</CardTitle>
+            <CardTitle>Discogs Connections</CardTitle>
             <CardDescription>
-              Connect your Discogs account to display your vinyl collection
+              Connect up to 2 Discogs accounts to display your vinyl collections (limit: 2 accounts)
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {userData?.hasDiscogsConnection ? (
-              <div className="space-y-4">
-                <div className="rounded-lg bg-green-50 border border-green-200 p-4">
-                  <p className="text-sm font-medium text-green-900">
-                    ✓ Connected as <strong>{userData.discogsUsername}</strong>
-                  </p>
-                  <p className="text-xs text-green-700 mt-1">
-                    Your Discogs collection is being displayed on your public page.
-                  </p>
-                </div>
-                <Button
-                  variant="destructive"
-                  onClick={handleDisconnectDiscogs}
-                  disabled={disconnecting}
-                  className="w-full"
-                >
-                  {disconnecting ? 'Disconnecting...' : 'Disconnect Discogs Account'}
-                </Button>
-              </div>
-            ) : (
+            {connections.length === 0 ? (
               <div className="space-y-4">
                 <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-4">
                   <p className="text-sm font-medium text-yellow-900">
-                    Not connected
+                    No connections
                   </p>
                   <p className="text-xs text-yellow-700 mt-1">
                     Connect your Discogs account to display your vinyl collection to visitors.
@@ -179,6 +245,119 @@ function SettingsContent() {
                     Connect Discogs Account
                   </Button>
                 </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* List of connections */}
+                {connections.map((connection) => (
+                  <div key={connection.id} className="rounded-lg border p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        {editingConnectionId === connection.id ? (
+                          <div className="flex gap-2 mb-2">
+                            <Input
+                              value={editingName}
+                              onChange={(e) => setEditingName(e.target.value)}
+                              placeholder="Connection name"
+                              className="flex-1"
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleSaveName(connection.id)}
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingConnectionId(null);
+                                setEditingName('');
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-medium">{connection.name}</p>
+                            {connection.isPrimary && (
+                              <span className="text-xs bg-neutral-900 text-white px-2 py-0.5 rounded">
+                                Primary
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        <p className="text-sm text-neutral-600">@{connection.discogsUsername}</p>
+                        <p className="text-xs text-neutral-500 mt-1">
+                          Connected {new Date(connection.connectedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 flex-wrap">
+                      {editingConnectionId !== connection.id && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingConnectionId(connection.id);
+                              setEditingName(connection.name);
+                            }}
+                          >
+                            Edit Name
+                          </Button>
+                          {!connection.isPrimary && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleSetPrimary(connection.id)}
+                            >
+                              Set as Primary
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDisconnectConnection(connection.id, connection.name)}
+                            disabled={disconnecting}
+                          >
+                            Disconnect
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add another account button */}
+                {connections.length < 2 && (
+                  <Link href="/api/auth/discogs/connect">
+                    <Button className="w-full bg-black hover:bg-neutral-800">
+                      <svg
+                        className="mr-2 h-5 w-5"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                      </svg>
+                      Add Another Discogs Account
+                    </Button>
+                  </Link>
+                )}
+
+                {connections.length >= 2 && (
+                  <div className="rounded-lg bg-neutral-100 border p-3 text-center">
+                    <p className="text-sm text-neutral-600">
+                      Maximum connections reached (2/2)
+                    </p>
+                    <p className="text-xs text-neutral-500 mt-1">
+                      Disconnect an account to add a different one
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
