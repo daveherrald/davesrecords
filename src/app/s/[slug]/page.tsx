@@ -53,18 +53,21 @@ export default function PublicStackPage() {
 
   useEffect(() => {
     fetchStack();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   useEffect(() => {
     if (stack?.defaultSort && !sortBy) {
       setSortBy(stack.defaultSort);
     }
-  }, [stack]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stack?.defaultSort]);
 
   useEffect(() => {
     if (allAlbums.length > 0) {
       applyFiltersAndSort();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allAlbums, searchQuery, sortBy, filters]);
 
   const fetchStack = async () => {
@@ -100,7 +103,7 @@ export default function PublicStackPage() {
           if (albumResponse.ok) {
             const albumData = await albumResponse.json();
             return {
-              ...albumData.release,
+              ...albumData,
               stackNotes: record.notes,
             };
           }
