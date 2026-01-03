@@ -68,6 +68,7 @@ export default function StackManagePage() {
   const [notesValues, setNotesValues] = useState<Record<string, string>>({});
   const [selectedAlbum, setSelectedAlbum] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState('artist');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -284,6 +285,28 @@ export default function StackManagePage() {
   const userRole = stack?.curators.find((c) => c.role === 'OWNER')?.role || 'CURATOR';
   const isOwner = userRole === 'OWNER';
 
+  // Sort records
+  const sortedRecords = [...records].sort((a, b) => {
+    if (!a.album || !b.album) return 0;
+
+    switch (sortBy) {
+      case 'artist':
+        return a.album.artist.localeCompare(b.album.artist);
+      case 'artist-desc':
+        return b.album.artist.localeCompare(a.album.artist);
+      case 'year':
+        return b.album.year - a.album.year;
+      case 'year-asc':
+        return a.album.year - b.album.year;
+      case 'title':
+        return a.album.title.localeCompare(b.album.title);
+      case 'added':
+        return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
+      default:
+        return 0;
+    }
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-4">
@@ -493,6 +516,19 @@ export default function StackManagePage() {
                 </CardDescription>
               </div>
               <div className="flex gap-2">
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Sort by..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="artist">Artist (A-Z)</SelectItem>
+                    <SelectItem value="artist-desc">Artist (Z-A)</SelectItem>
+                    <SelectItem value="year">Year (Newest)</SelectItem>
+                    <SelectItem value="year-asc">Year (Oldest)</SelectItem>
+                    <SelectItem value="title">Title (A-Z)</SelectItem>
+                    <SelectItem value="added">Recently Added</SelectItem>
+                  </SelectContent>
+                </Select>
                 <div className="flex gap-1 border border-neutral-700 rounded-lg p-1">
                   <Button
                     variant={viewMode === 'grid' ? 'default' : 'ghost'}
@@ -525,7 +561,7 @@ export default function StackManagePage() {
               </div>
             ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {records.map((record) => {
+                {sortedRecords.map((record) => {
                   const isRemoving = removing.has(record.instanceId);
                   const canRemove = session?.user?.id === record.userId || isOwner;
                   const isEditingNote = editingNotes.has(record.instanceId);
@@ -591,8 +627,8 @@ export default function StackManagePage() {
                 })}
               </div>
             ) : (
-              <div className="space-y-2">
-                {records.map((record) => {
+              <div className="space-y-1">
+                {sortedRecords.map((record) => {
                   const isRemoving = removing.has(record.instanceId);
                   const canRemove = session?.user?.id === record.userId || isOwner;
                   const isEditingNote = editingNotes.has(record.instanceId);
@@ -600,44 +636,40 @@ export default function StackManagePage() {
                   return (
                     <div
                       key={record.id}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-neutral-800/50 hover:bg-neutral-800/70 transition-colors"
+                      className="flex items-center gap-2 p-2 rounded-lg bg-neutral-800/50 hover:bg-neutral-800/70 transition-colors"
                     >
                       {record.album && (
                         <div
-                          className="w-16 h-16 relative flex-shrink-0 rounded overflow-hidden cursor-pointer"
+                          className="w-12 h-12 relative flex-shrink-0 rounded overflow-hidden cursor-pointer"
                           onClick={() => setSelectedAlbum(record.album!.id)}
                         >
                           <Image
                             src={record.album.thumbnail || record.album.coverImage || '/placeholder-album.png'}
                             alt={`${record.album.artist} - ${record.album.title}`}
                             fill
-                            sizes="64px"
+                            sizes="48px"
                             className="object-cover"
                           />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
                         {record.album ? (
-                          <>
-                            <p className="text-white font-medium truncate">
-                              {record.album.title}
-                            </p>
-                            <p className="text-sm text-neutral-400 truncate">
+                          <div className="flex items-baseline gap-2">
+                            <p className="text-white text-sm font-medium truncate">
                               {record.album.artist}
                             </p>
-                            <p className="text-xs text-neutral-500">
-                              {record.album.year} • {record.album.format}
+                            <p className="text-neutral-400 text-sm truncate">
+                              {record.album.title}
                             </p>
-                          </>
+                            <p className="text-neutral-500 text-xs flex-shrink-0">
+                              {record.album.year}
+                            </p>
+                          </div>
                         ) : (
                           <p className="text-white text-sm">Release ID: {record.releaseId}</p>
                         )}
-                        <p className="text-xs text-neutral-500 mt-1">
-                          Added by {record.user.displayName || 'Unknown'} on{' '}
-                          {new Date(record.addedAt).toLocaleDateString()}
-                        </p>
                         {isEditingNote ? (
-                          <div className="mt-2 space-y-2">
+                          <div className="mt-1 flex gap-1 items-center">
                             <Input
                               value={notesValues[record.instanceId] || ''}
                               onChange={(e) =>
@@ -646,54 +678,52 @@ export default function StackManagePage() {
                                   [record.instanceId]: e.target.value,
                                 }))
                               }
-                              placeholder="Add notes about this record..."
-                              className="text-sm"
+                              placeholder="Add notes..."
+                              className="text-xs h-7"
                             />
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => handleSaveNotes(record.instanceId, record.releaseId)}
-                              >
-                                Save
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleCancelEditNotes(record.instanceId, record.notes)}
-                              >
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="mt-2">
-                            {record.notes ? (
-                              <p className="text-sm text-neutral-300">{record.notes}</p>
-                            ) : (
-                              <p className="text-xs text-neutral-500 italic">No notes</p>
-                            )}
                             <Button
                               size="sm"
-                              variant="ghost"
-                              className="text-xs mt-1 h-6 px-2"
-                              onClick={() => handleEditNotes(record.instanceId)}
+                              onClick={() => handleSaveNotes(record.instanceId, record.releaseId)}
+                              className="h-7 px-2 text-xs"
                             >
-                              Edit notes
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCancelEditNotes(record.instanceId, record.notes)}
+                              className="h-7 px-2 text-xs"
+                            >
+                              Cancel
                             </Button>
                           </div>
+                        ) : record.notes ? (
+                          <p className="text-xs text-neutral-400 truncate">{record.notes}</p>
+                        ) : null}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {!isEditingNote && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-xs h-7 px-2 text-neutral-400 hover:text-white"
+                            onClick={() => handleEditNotes(record.instanceId)}
+                          >
+                            Note
+                          </Button>
+                        )}
+                        {canRemove && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveRecord(record.instanceId)}
+                            disabled={isRemoving}
+                            className="text-xs h-7 px-2 text-red-400 hover:text-red-300"
+                          >
+                            {isRemoving ? '...' : 'Remove'}
+                          </Button>
                         )}
                       </div>
-                      {canRemove && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveRecord(record.instanceId)}
-                          disabled={isRemoving}
-                          className="text-red-400 hover:text-red-300"
-                        >
-                          {isRemoving ? 'Removing...' : 'Remove'}
-                        </Button>
-                      )}
                     </div>
                   );
                 })}
