@@ -95,8 +95,9 @@ export const authOptions: NextAuthConfig = {
           });
         }
 
-        // Find primary connection
-        const primary = fullUser.discogsConnection.find(c => c.isPrimary);
+        // Find primary connection (fallback to first connection if no primary set)
+        const primary = fullUser.discogsConnection.find(c => c.isPrimary)
+          || fullUser.discogsConnection[0];
 
         session.user = {
           ...session.user,
