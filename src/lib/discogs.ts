@@ -87,8 +87,8 @@ export async function getUserCollection(
     throw new Error('Rate limit exceeded. Please try again later.');
   }
 
-  // Get user's Discogs connection (specific or primary)
-  const connection = connectionId
+  // Get user's Discogs connection (specific or primary, with fallback)
+  let connection = connectionId
     ? await prisma.discogsConnection.findFirst({
         where: { id: connectionId, userId },
         select: {
@@ -109,6 +109,22 @@ export async function getUserCollection(
           name: true,
         },
       });
+
+  // Fallback: if no primary found, use first available connection
+  // This handles pre-migration accounts that don't have isPrimary set
+  if (!connection && !connectionId) {
+    connection = await prisma.discogsConnection.findFirst({
+      where: { userId },
+      orderBy: { connectedAt: 'asc' },
+      select: {
+        id: true,
+        accessToken: true,
+        accessTokenSecret: true,
+        discogsUsername: true,
+        name: true,
+      },
+    });
+  }
 
   if (!connection) {
     throw new Error('Discogs account not connected. Please connect your Discogs account in settings.');
@@ -185,8 +201,8 @@ export async function getAlbumDetails(
     throw new Error('Rate limit exceeded. Please try again later.');
   }
 
-  // Get user's Discogs connection (specific or primary)
-  const connection = connectionId
+  // Get user's Discogs connection (specific or primary, with fallback)
+  let connection = connectionId
     ? await prisma.discogsConnection.findFirst({
         where: { id: connectionId, userId },
         select: {
@@ -201,6 +217,18 @@ export async function getAlbumDetails(
           accessTokenSecret: true,
         },
       });
+
+  // Fallback: if no primary found, use first available connection
+  if (!connection && !connectionId) {
+    connection = await prisma.discogsConnection.findFirst({
+      where: { userId },
+      orderBy: { connectedAt: 'asc' },
+      select: {
+        accessToken: true,
+        accessTokenSecret: true,
+      },
+    });
+  }
 
   if (!connection) {
     throw new Error('Discogs account not connected. Please connect your Discogs account in settings.');

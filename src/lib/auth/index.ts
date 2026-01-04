@@ -81,7 +81,7 @@ export async function getDiscogsTokens(
   accessTokenSecret: string;
   discogsUsername: string;
 } | null> {
-  const connection = connectionId
+  let connection = connectionId
     ? await prisma.discogsConnection.findFirst({
         where: { id: connectionId, userId },
         select: {
@@ -100,6 +100,21 @@ export async function getDiscogsTokens(
           discogsUsername: true,
         },
       });
+
+  // Fallback: if no primary found, use first available connection
+  // This handles pre-migration accounts that don't have isPrimary set
+  if (!connection && !connectionId) {
+    connection = await prisma.discogsConnection.findFirst({
+      where: { userId },
+      orderBy: { connectedAt: 'asc' },
+      select: {
+        id: true,
+        accessToken: true,
+        accessTokenSecret: true,
+        discogsUsername: true,
+      },
+    });
+  }
 
   if (!connection) {
     return null;
