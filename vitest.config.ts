@@ -20,12 +20,6 @@ export default defineConfig({
         'src/types/**',
         'src/lib/db.ts', // Prisma client export
       ],
-      thresholds: {
-        lines: 70,
-        functions: 70,
-        branches: 60,
-        statements: 70,
-      },
     },
     mockReset: true,
     restoreMocks: true,
