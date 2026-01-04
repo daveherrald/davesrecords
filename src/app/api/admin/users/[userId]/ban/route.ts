@@ -7,7 +7,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { logAdminAction } from '@/lib/admin/audit';
+import {
+  logAccountChange,
+  actorFromSession,
+  endpointFromRequest,
+  OCSF_ACTIVITY,
+  OCSF_STATUS,
+  OCSF_SEVERITY,
+} from '@/lib/audit';
 
 /**
  * POST - Ban a user
@@ -55,6 +62,14 @@ export async function POST(
         bannedReason: reason || 'No reason provided',
         bannedBy: session.user.id,
       },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        status: true,
+        bannedAt: true,
+        bannedReason: true,
+      },
     });
 
     // Delete all active sessions for the banned user
@@ -62,17 +77,27 @@ export async function POST(
       where: { userId },
     });
 
-    await logAdminAction({
-      adminId: session.user.id,
-      action: 'USER_BAN',
-      resource: 'user',
-      resourceId: userId,
-      targetUserId: userId,
-      description: `Banned user ${user.email || user.name}`,
-      metadata: { reason: reason || 'No reason provided' },
-      ipAddress: request.headers.get('x-forwarded-for') || undefined,
-      userAgent: request.headers.get('user-agent') || undefined,
-    });
+    // Log user ban (Account Change: Disable)
+    try {
+      await logAccountChange(
+        OCSF_ACTIVITY.ACCOUNT_CHANGE.DISABLE,
+        `Admin banned user ${user.email || user.name}`,
+        {
+          userId,
+          email: user.email,
+          name: user.name,
+        },
+        {
+          actor: actorFromSession(session),
+          srcEndpoint: endpointFromRequest(request),
+          statusId: OCSF_STATUS.SUCCESS,
+          severityId: OCSF_SEVERITY.HIGH,
+          rawData: { reason: reason || 'No reason provided' },
+        }
+      );
+    } catch (logError) {
+      console.error('Failed to log user ban (non-fatal):', logError);
+    }
 
     return NextResponse.json({
       success: true,
@@ -126,18 +151,33 @@ export async function DELETE(
         bannedReason: null,
         bannedBy: null,
       },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        status: true,
+      },
     });
 
-    await logAdminAction({
-      adminId: session.user.id,
-      action: 'USER_UNBAN',
-      resource: 'user',
-      resourceId: userId,
-      targetUserId: userId,
-      description: `Unbanned user ${user.email || user.name}`,
-      ipAddress: request.headers.get('x-forwarded-for') || undefined,
-      userAgent: request.headers.get('user-agent') || undefined,
-    });
+    // Log user unban (Account Change: Enable)
+    try {
+      await logAccountChange(
+        OCSF_ACTIVITY.ACCOUNT_CHANGE.ENABLE,
+        `Admin unbanned user ${user.email || user.name}`,
+        {
+          userId,
+          email: user.email,
+          name: user.name,
+        },
+        {
+          actor: actorFromSession(session),
+          srcEndpoint: endpointFromRequest(request),
+          statusId: OCSF_STATUS.SUCCESS,
+        }
+      );
+    } catch (logError) {
+      console.error('Failed to log user unban (non-fatal):', logError);
+    }
 
     return NextResponse.json({
       success: true,

@@ -3,6 +3,12 @@ import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { storeDiscogsTokens } from '@/lib/auth';
+import {
+  logEntityManagement,
+  endpointFromRequest,
+  OCSF_ACTIVITY,
+  OCSF_STATUS,
+} from '@/lib/audit';
 
 /**
  * Handle Discogs OAuth callback
@@ -72,17 +78,18 @@ export async function GET(request: NextRequest) {
     });
 
     const responseText = await response.text();
-    console.log('Discogs access token response:', responseText);
-    console.log('Response status:', response.status);
+
+    if (!response.ok) {
+      console.error('Discogs OAuth failed with status:', response.status);
+      throw new Error('Failed to get access token from Discogs');
+    }
 
     const params = new URLSearchParams(responseText);
     const accessToken = params.get('oauth_token');
     const accessTokenSecret = params.get('oauth_token_secret');
 
-    console.log('Parsed tokens:', { accessToken, accessTokenSecret });
-
     if (!accessToken || !accessTokenSecret) {
-      console.error('Failed to parse access token. Response:', responseText);
+      console.error('Failed to parse Discogs access token response');
       throw new Error('Failed to get access token from Discogs');
     }
 
@@ -116,6 +123,27 @@ export async function GET(request: NextRequest) {
       accessTokenSecret
     );
 
+    // Log successful Discogs connection
+    try {
+      await logEntityManagement(
+        OCSF_ACTIVITY.ENTITY_MANAGEMENT.CREATE,
+        `Connected Discogs account: ${identity.username}`,
+        {
+          type: 'DiscogsConnection',
+          id: identity.id.toString(),
+          name: identity.username,
+          data: { discogsUsername: identity.username },
+        },
+        {
+          actor: { userId },
+          srcEndpoint: endpointFromRequest(request),
+          statusId: OCSF_STATUS.SUCCESS,
+        }
+      );
+    } catch (logError) {
+      console.error('Failed to log Discogs connection (non-fatal):', logError);
+    }
+
     // Clear temporary cookies
     cookieStore.delete('discogs_token_secret');
     cookieStore.delete('discogs_connecting_user');
@@ -124,6 +152,26 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/dashboard/settings?success=DiscogsConnected`);
   } catch (error) {
     console.error('Discogs OAuth callback error:', error);
+
+    // Log failed connection attempt
+    try {
+      const cookieStore = await cookies();
+      const userId = cookieStore.get('discogs_connecting_user')?.value;
+      await logEntityManagement(
+        OCSF_ACTIVITY.ENTITY_MANAGEMENT.CREATE,
+        'Failed to connect Discogs account',
+        { type: 'DiscogsConnection' },
+        {
+          actor: userId ? { userId } : undefined,
+          srcEndpoint: endpointFromRequest(request),
+          statusId: OCSF_STATUS.FAILURE,
+          statusDetail: error instanceof Error ? error.message : 'Unknown error',
+        }
+      );
+    } catch (logError) {
+      console.error('Failed to log Discogs connection failure:', logError);
+    }
+
     return NextResponse.redirect(
       `${process.env.NEXTAUTH_URL}/auth/error?error=CallbackError`
     );

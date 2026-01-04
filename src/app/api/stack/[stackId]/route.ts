@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import {
+  logEntityManagement,
+  actorFromSession,
+  endpointFromRequest,
+  OCSF_ACTIVITY,
+  OCSF_STATUS,
+} from '@/lib/audit';
 
 /**
  * GET /api/stack/[stackId] - Get stack details
@@ -21,7 +28,7 @@ export async function GET(
               select: {
                 id: true,
                 displayName: true,
-                email: true,
+                publicSlug: true,
               },
             },
           },
@@ -124,13 +131,34 @@ export async function PATCH(
               select: {
                 id: true,
                 displayName: true,
-                email: true,
+                publicSlug: true,
               },
             },
           },
         },
       },
     });
+
+    // Log stack update
+    try {
+      await logEntityManagement(
+        OCSF_ACTIVITY.ENTITY_MANAGEMENT.UPDATE,
+        `Updated stack: ${stack.name}`,
+        {
+          type: 'Stack',
+          id: stackId,
+          name: stack.name,
+          data: { changes: body },
+        },
+        {
+          actor: actorFromSession(session),
+          srcEndpoint: endpointFromRequest(request),
+          statusId: OCSF_STATUS.SUCCESS,
+        }
+      );
+    } catch (logError) {
+      console.error('Failed to log stack update (non-fatal):', logError);
+    }
 
     return NextResponse.json({ stack });
   } catch (error) {
@@ -175,9 +203,36 @@ export async function DELETE(
       );
     }
 
+    // Get stack name before deletion for logging
+    const stackToDelete = await prisma.stack.findUnique({
+      where: { id: stackId },
+      select: { name: true, slug: true },
+    });
+
     await prisma.stack.delete({
       where: { id: stackId },
     });
+
+    // Log stack deletion
+    try {
+      await logEntityManagement(
+        OCSF_ACTIVITY.ENTITY_MANAGEMENT.DELETE,
+        `Deleted stack: ${stackToDelete?.name || stackId}`,
+        {
+          type: 'Stack',
+          id: stackId,
+          name: stackToDelete?.name,
+          data: { slug: stackToDelete?.slug },
+        },
+        {
+          actor: actorFromSession(session),
+          srcEndpoint: endpointFromRequest(request),
+          statusId: OCSF_STATUS.SUCCESS,
+        }
+      );
+    } catch (logError) {
+      console.error('Failed to log stack deletion (non-fatal):', logError);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

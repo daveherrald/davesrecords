@@ -8,7 +8,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { logAdminAction } from '@/lib/admin/audit';
+import {
+  logApiActivity,
+  logAccountChange,
+  actorFromSession,
+  endpointFromRequest,
+  OCSF_ACTIVITY,
+  OCSF_STATUS,
+  OCSF_SEVERITY,
+} from '@/lib/audit';
 
 /**
  * GET - Fetch user details
@@ -23,11 +31,30 @@ export async function GET(
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        image: true,
+        displayName: true,
+        bio: true,
+        publicSlug: true,
+        isPublic: true,
+        defaultSort: true,
+        itemsPerPage: true,
+        role: true,
+        status: true,
+        bannedAt: true,
+        bannedReason: true,
+        createdAt: true,
+        updatedAt: true,
         discogsConnection: {
           select: {
+            id: true,
             discogsUsername: true,
             discogsId: true,
+            name: true,
+            isPrimary: true,
             connectedAt: true,
           },
         },
@@ -45,25 +72,29 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Try to log the action, but don't fail if it errors
+    // Log admin viewing user details (API Activity: Read)
     try {
-      await logAdminAction({
-        adminId: session.user.id,
-        action: 'SETTINGS_VIEW',
-        resource: 'user',
-        resourceId: userId,
-        targetUserId: userId,
-        description: `Viewed user details for ${user.email || user.name}`,
-        ipAddress: request.headers.get('x-forwarded-for') || undefined,
-        userAgent: request.headers.get('user-agent') || undefined,
-      });
+      await logApiActivity(
+        OCSF_ACTIVITY.API_ACTIVITY.READ,
+        `Admin viewed user details for ${user.email || user.name}`,
+        {
+          operation: 'GET',
+          endpoint: `/api/admin/users/${userId}`,
+        },
+        {
+          actor: actorFromSession(session),
+          srcEndpoint: endpointFromRequest(request),
+          statusId: OCSF_STATUS.SUCCESS,
+          resources: [{ type: 'User', id: userId, name: user.email || user.name || undefined }],
+        }
+      );
     } catch (logError) {
-      console.error('Failed to log admin action (non-fatal):', logError);
+      // Non-fatal logging error
     }
 
     return NextResponse.json({
       ...user,
-      hasDiscogsConnection: !!user.discogsConnection,
+      hasDiscogsConnection: user.discogsConnection.length > 0,
       actionCounts: {
         performed: user._count.adminActions,
         received: user._count.receivedActions,
@@ -72,12 +103,6 @@ export async function GET(
     });
   } catch (error) {
     console.error('Get user error:', error);
-
-    // Log the full error details
-    if (error instanceof Error) {
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-    }
 
     if (error instanceof Error && error.message === 'Admin access required') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
@@ -139,11 +164,25 @@ export async function PATCH(
         ...(defaultSort !== undefined && { defaultSort }),
         ...(itemsPerPage !== undefined && { itemsPerPage }),
       },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        displayName: true,
+        bio: true,
+        publicSlug: true,
+        isPublic: true,
+        defaultSort: true,
+        itemsPerPage: true,
+        role: true,
+        status: true,
         discogsConnection: {
           select: {
+            id: true,
             discogsUsername: true,
             discogsId: true,
+            name: true,
+            isPrimary: true,
             connectedAt: true,
           },
         },
@@ -157,21 +196,30 @@ export async function PATCH(
       },
     });
 
-    await logAdminAction({
-      adminId: session.user.id,
-      action: 'USER_EDIT',
-      resource: 'user',
-      resourceId: userId,
-      targetUserId: userId,
-      description: `Updated user settings for ${existingUser.email || existingUser.name}`,
-      metadata: { changes: body },
-      ipAddress: request.headers.get('x-forwarded-for') || undefined,
-      userAgent: request.headers.get('user-agent') || undefined,
-    });
+    // Log admin editing user (Account Change: Other)
+    try {
+      await logAccountChange(
+        OCSF_ACTIVITY.ACCOUNT_CHANGE.OTHER,
+        `Admin updated user settings for ${existingUser.email || existingUser.name}`,
+        {
+          userId,
+          email: existingUser.email,
+          name: existingUser.name,
+        },
+        {
+          actor: actorFromSession(session),
+          srcEndpoint: endpointFromRequest(request),
+          statusId: OCSF_STATUS.SUCCESS,
+          rawData: { changes: body },
+        }
+      );
+    } catch (logError) {
+      console.error('Failed to log user edit (non-fatal):', logError);
+    }
 
     return NextResponse.json({
       ...updatedUser,
-      hasDiscogsConnection: !!updatedUser.discogsConnection,
+      hasDiscogsConnection: updatedUser.discogsConnection.length > 0,
       actionCounts: {
         performed: updatedUser._count.adminActions,
         received: updatedUser._count.receivedActions,
@@ -222,22 +270,33 @@ export async function DELETE(
       where: { id: userId },
     });
 
-    await logAdminAction({
-      adminId: session.user.id,
-      action: 'USER_DELETE',
-      resource: 'user',
-      resourceId: userId,
-      description: `Permanently deleted user ${user.email || user.name}`,
-      metadata: {
-        deletedUser: {
+    // Log user deletion (Account Change: Delete)
+    try {
+      await logAccountChange(
+        OCSF_ACTIVITY.ACCOUNT_CHANGE.DELETE,
+        `Admin permanently deleted user ${user.email || user.name}`,
+        {
+          userId,
           email: user.email,
           name: user.name,
-          publicSlug: user.publicSlug,
         },
-      },
-      ipAddress: request.headers.get('x-forwarded-for') || undefined,
-      userAgent: request.headers.get('user-agent') || undefined,
-    });
+        {
+          actor: actorFromSession(session),
+          srcEndpoint: endpointFromRequest(request),
+          statusId: OCSF_STATUS.SUCCESS,
+          severityId: OCSF_SEVERITY.HIGH,
+          rawData: {
+            deletedUser: {
+              email: user.email,
+              name: user.name,
+              publicSlug: user.publicSlug,
+            },
+          },
+        }
+      );
+    } catch (logError) {
+      console.error('Failed to log user deletion (non-fatal):', logError);
+    }
 
     return NextResponse.json({ success: true, message: 'User deleted' });
   } catch (error) {

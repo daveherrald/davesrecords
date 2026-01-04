@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import {
+  logEntityManagement,
+  actorFromSession,
+  endpointFromRequest,
+  OCSF_ACTIVITY,
+  OCSF_STATUS,
+} from '@/lib/audit';
 
 /**
  * GET /api/stack - List user's stacks
@@ -29,7 +36,7 @@ export async function GET(request: NextRequest) {
               select: {
                 id: true,
                 displayName: true,
-                email: true,
+                publicSlug: true,
               },
             },
           },
@@ -114,7 +121,7 @@ export async function POST(request: NextRequest) {
               select: {
                 id: true,
                 displayName: true,
-                email: true,
+                publicSlug: true,
               },
             },
           },
@@ -126,6 +133,27 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Log stack creation
+    try {
+      await logEntityManagement(
+        OCSF_ACTIVITY.ENTITY_MANAGEMENT.CREATE,
+        `Created stack: ${name}`,
+        {
+          type: 'Stack',
+          id: stack.id,
+          name: stack.name,
+          data: { slug, type: type || 'PERSONAL', isPublic },
+        },
+        {
+          actor: actorFromSession(session),
+          srcEndpoint: endpointFromRequest(request),
+          statusId: OCSF_STATUS.SUCCESS,
+        }
+      );
+    } catch (logError) {
+      console.error('Failed to log stack creation (non-fatal):', logError);
+    }
 
     return NextResponse.json({ stack });
   } catch (error) {

@@ -1,63 +1,45 @@
 /**
- * Admin API: Audit Logs
- * GET /api/admin/audit - Get audit logs with pagination and filters
+ * Admin API: Audit Logs (OCSF)
+ * GET /api/admin/audit - Get OCSF audit events with pagination and filters
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
-import { prisma } from '@/lib/db';
-import { AdminAction } from '@prisma/client';
+import { queryAuditEvents, getAuditStats } from '@/lib/audit';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireAdmin();
+    await requireAdmin();
 
-    // Get query parameters
+    // Get query parameters with bounds checking
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const adminId = searchParams.get('adminId') || undefined;
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1') || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50') || 50));
+    const classUid = searchParams.get('classUid');
+    const severityId = searchParams.get('severityId');
+    const statusId = searchParams.get('statusId');
+    const actorUserId = searchParams.get('actorUserId') || undefined;
     const targetUserId = searchParams.get('targetUserId') || undefined;
-    const action = searchParams.get('action') as AdminAction | null;
+    const resourceType = searchParams.get('resourceType') || undefined;
+    const startTime = searchParams.get('startTime');
+    const endTime = searchParams.get('endTime');
 
-    // Build where clause
-    const where = {
-      ...(adminId && { adminId }),
-      ...(targetUserId && { targetUserId }),
-      ...(action && { action }),
-    };
-
-    // Get total count
-    const total = await prisma.adminAuditLog.count({ where });
-
-    // Get audit logs
-    const logs = await prisma.adminAuditLog.findMany({
-      where,
-      include: {
-        admin: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            publicSlug: true,
-          },
-        },
-        targetUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            publicSlug: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit,
+    // Query audit events
+    const { events, total } = await queryAuditEvents({
+      classUid: classUid ? parseInt(classUid) : undefined,
+      severityId: severityId ? parseInt(severityId) : undefined,
+      statusId: statusId ? parseInt(statusId) : undefined,
+      actorUserId,
+      targetUserId,
+      resourceType,
+      startTime: startTime ? new Date(startTime) : undefined,
+      endTime: endTime ? new Date(endTime) : undefined,
+      limit,
+      offset: (page - 1) * limit,
     });
 
     return NextResponse.json({
-      logs,
+      logs: events,
       pagination: {
         page,
         limit,

@@ -79,7 +79,7 @@ export async function POST(
           select: {
             id: true,
             displayName: true,
-            email: true,
+            publicSlug: true,
           },
         },
       },

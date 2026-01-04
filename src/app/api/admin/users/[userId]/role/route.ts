@@ -6,7 +6,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { logAdminAction } from '@/lib/admin/audit';
+import {
+  logUserAccess,
+  actorFromSession,
+  endpointFromRequest,
+  OCSF_ACTIVITY,
+  OCSF_STATUS,
+  OCSF_SEVERITY,
+} from '@/lib/audit';
 import { UserRole } from '@prisma/client';
 
 /**
@@ -58,25 +65,41 @@ export async function PATCH(
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: { role },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+      },
     });
 
-    const action = role === 'ADMIN' ? 'USER_PROMOTE' : 'USER_DEMOTE';
-    const description =
-      role === 'ADMIN'
-        ? `Promoted ${user.email || user.name} to ADMIN`
-        : `Demoted ${user.email || user.name} to USER`;
-
-    await logAdminAction({
-      adminId: session.user.id,
-      action,
-      resource: 'user',
-      resourceId: userId,
-      targetUserId: userId,
-      description,
-      metadata: { previousRole: user.role, newRole: role },
-      ipAddress: request.headers.get('x-forwarded-for') || undefined,
-      userAgent: request.headers.get('user-agent') || undefined,
-    });
+    // Log role change (User Access Management: Assign/Revoke Privileges)
+    const isPromotion = role === 'ADMIN';
+    try {
+      await logUserAccess(
+        isPromotion
+          ? OCSF_ACTIVITY.USER_ACCESS_MANAGEMENT.ASSIGN_PRIVILEGES
+          : OCSF_ACTIVITY.USER_ACCESS_MANAGEMENT.REVOKE_PRIVILEGES,
+        isPromotion
+          ? `Admin promoted ${user.email || user.name} to ADMIN`
+          : `Admin demoted ${user.email || user.name} to USER`,
+        {
+          userId,
+          email: user.email,
+          name: user.name,
+        },
+        [role],
+        {
+          actor: actorFromSession(session),
+          srcEndpoint: endpointFromRequest(request),
+          statusId: OCSF_STATUS.SUCCESS,
+          severityId: isPromotion ? OCSF_SEVERITY.HIGH : OCSF_SEVERITY.MEDIUM,
+          rawData: { previousRole: user.role, newRole: role },
+        }
+      );
+    } catch (logError) {
+      console.error('Failed to log role change (non-fatal):', logError);
+    }
 
     return NextResponse.json({
       success: true,

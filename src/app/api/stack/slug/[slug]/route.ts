@@ -21,7 +21,7 @@ export async function GET(
               select: {
                 id: true,
                 displayName: true,
-                email: true,
+                publicSlug: true,
               },
             },
           },

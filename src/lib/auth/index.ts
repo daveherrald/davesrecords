@@ -42,12 +42,16 @@ export async function getSession(): Promise<ExtendedSession | null> {
 }
 
 /**
- * Require authentication - throws error if not authenticated
+ * Require authentication - throws error if not authenticated or account is suspended/banned
  */
 export async function requireAuth(): Promise<ExtendedSession> {
   const session = await getSession();
   if (!session) {
     throw new Error('Not authenticated');
+  }
+  // Check if account is active (not banned or suspended)
+  if (session.user.status !== 'ACTIVE') {
+    throw new Error('Account suspended or banned');
   }
   return session;
 }

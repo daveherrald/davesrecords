@@ -15,8 +15,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Get all stack records (from any stack the user has access to)
+    // Get stack records only from stacks the user has access to
     const stackRecords = await prisma.stackRecord.findMany({
+      where: {
+        stack: {
+          curators: {
+            some: {
+              userId: session.user.id,
+            },
+          },
+        },
+      },
       select: {
         instanceId: true,
         stackId: true,
