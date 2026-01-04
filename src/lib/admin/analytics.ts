@@ -3,7 +3,7 @@
  */
 
 import { prisma } from '@/lib/db';
-import { AnalyticsEventType } from '@prisma/client';
+import { AnalyticsEventType, Prisma } from '@prisma/client';
 
 export interface TrackEventParams {
   eventType: AnalyticsEventType;
@@ -22,7 +22,7 @@ export async function trackEvent(params: TrackEventParams): Promise<void> {
     data: {
       eventType: params.eventType,
       userId: params.userId,
-      metadata: params.metadata as any,
+      metadata: params.metadata as Prisma.InputJsonValue,
       ipAddress: params.ipAddress,
       userAgent: params.userAgent,
       referer: params.referer,

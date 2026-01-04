@@ -610,7 +610,7 @@ export default function StackManagePage() {
             ) : records.length === 0 ? (
               <div className="text-center py-8 text-neutral-400">
                 <p>No records in this stack yet.</p>
-                <p className="text-sm mt-2">Click "Add Records" to get started.</p>
+                <p className="text-sm mt-2">Click &quot;Add Records&quot; to get started.</p>
               </div>
             ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

@@ -498,7 +498,7 @@ function SettingsContent() {
                       Show both total and public album counts to visitors
                     </div>
                     <div className="text-xs text-neutral-500">
-                      When off, shows only public count ("105 records"). When on, shows "109 albums, 105 public"
+                      When off, shows only public count (&quot;105 records&quot;). When on, shows &quot;109 albums, 105 public&quot;
                     </div>
                   </div>
                   <button

@@ -3,7 +3,7 @@
  */
 
 import { prisma } from '@/lib/db';
-import { AdminAction } from '@prisma/client';
+import { AdminAction, Prisma } from '@prisma/client';
 
 export interface LogAdminActionParams {
   adminId: string;
@@ -29,7 +29,7 @@ export async function logAdminAction(params: LogAdminActionParams): Promise<void
       resourceId: params.resourceId,
       targetUserId: params.targetUserId,
       description: params.description,
-      metadata: params.metadata as any,
+      metadata: params.metadata as Prisma.InputJsonValue,
       ipAddress: params.ipAddress,
       userAgent: params.userAgent,
     },

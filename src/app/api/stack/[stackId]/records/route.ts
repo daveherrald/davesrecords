@@ -118,9 +118,9 @@ export async function POST(
     });
 
     return NextResponse.json({ record: stackRecord });
-  } catch (error: any) {
+  } catch (error) {
     // Handle unique constraint violation (record already in stack)
-    if (error.code === 'P2002') {
+    if (error instanceof Error && 'code' in error && error.code === 'P2002') {
       return NextResponse.json(
         { error: 'This record is already in the stack' },
         { status: 400 }

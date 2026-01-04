@@ -92,9 +92,9 @@ export async function POST(
               },
             });
             added++;
-          } catch (error: any) {
+          } catch (error) {
             // Skip if already exists (P2002 = unique constraint violation)
-            if (error.code === 'P2002') {
+            if (error instanceof Error && 'code' in error && error.code === 'P2002') {
               skipped++;
             } else {
               console.error(`Failed to add record ${album.id}:`, error);

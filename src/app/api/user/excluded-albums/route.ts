@@ -93,9 +93,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     // Handle unique constraint violation (already excluded)
-    if (error.code === 'P2002') {
+    if (error instanceof Error && 'code' in error && error.code === 'P2002') {
       // Still invalidate cache even if already excluded
       const user = await prisma.user.findUnique({
         where: { id: (await getSession())?.user?.id },

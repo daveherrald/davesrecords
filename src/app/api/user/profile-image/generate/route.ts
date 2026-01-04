@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const { gridSize = 'all' } = await request.json();
 
     // Fetch user's collection - get all albums by fetching multiple pages if needed
-    let allAlbums: any[] = [];
+    const allAlbums: Array<{ thumbnail?: string; coverImage?: string }> = [];
     let page = 1;
     let hasMore = true;
 
@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
       selectedAlbums.map(async (album) => {
         try {
           const imageUrl = album.coverImage || album.thumbnail;
+          if (!imageUrl) return null;
           const response = await fetch(imageUrl);
           const arrayBuffer = await response.arrayBuffer();
           const buffer = Buffer.from(arrayBuffer);
@@ -92,9 +93,10 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    // Create composite image
+    // Create composite image - filter out null buffers
     const canvasSize = actualGridSize * imageSize;
-    const compositeOperations = imageBuffers.map((buffer, index) => {
+    const validBuffers = imageBuffers.filter((buffer): buffer is Buffer => buffer !== null);
+    const compositeOperations = validBuffers.map((buffer, index) => {
       const row = Math.floor(index / actualGridSize);
       const col = index % actualGridSize;
 

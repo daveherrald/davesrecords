@@ -95,7 +95,7 @@ export default function AddRecordsPage() {
         const data = await response.json();
         setConnections(data.connections || []);
         // Select all connections by default
-        const allIds = (data.connections || []).map((c: any) => c.id);
+        const allIds = (data.connections || []).map((c: { id: string }) => c.id);
         setSelectedConnectionIds(new Set(allIds));
       }
     } catch (error) {

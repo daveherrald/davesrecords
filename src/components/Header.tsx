@@ -9,7 +9,7 @@ export async function Header() {
     <header className="w-full border-b border-neutral-700/50 bg-neutral-900/50 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 py-4 flex items-center justify-between">
         <Link href="/" className="text-xl font-bold text-white hover:text-neutral-300 transition-colors">
-          Dave's Records
+          Dave&apos;s Records
         </Link>
 
         <nav className="flex items-center gap-4">

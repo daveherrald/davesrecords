@@ -85,7 +85,7 @@ export async function GET(
     // Include connectionId in cache key
     if (!isOwnCollection) {
       const cacheKey = `collection:${slug}:${page}:${connectionId || 'primary'}`;
-      const cached = await getCached<any>(cacheKey);
+      const cached = await getCached<Record<string, unknown>>(cacheKey);
       if (cached) {
         return NextResponse.json({
           ...cached,

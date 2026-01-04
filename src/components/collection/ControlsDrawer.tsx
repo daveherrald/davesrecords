@@ -17,7 +17,7 @@ interface ControlsDrawerProps {
     format: string;
     genre: string;
   };
-  onFiltersChange: (filters: any) => void;
+  onFiltersChange: (filters: ControlsDrawerProps['filters']) => void;
   totalResults: number;
   totalRecords: number;
 }
