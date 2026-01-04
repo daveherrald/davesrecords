@@ -11,6 +11,13 @@ npm run lint         # ESLint
 npx tsc --noEmit     # TypeScript check
 npx prisma studio    # Database GUI
 npx prisma db push   # Push schema changes to database
+
+# Testing
+npm run test         # Vitest watch mode
+npm run test:run     # Vitest single run
+npm run test:coverage # Vitest with coverage report
+npm run test:e2e     # Playwright E2E tests (requires dev server)
+npm run test:all     # Run all tests
 ```
 
 ## Terminology
@@ -85,9 +92,41 @@ Custom commands in `.claude/commands/`:
 
 PostToolUse hook in `.claude/hooks/format-files.sh` auto-runs ESLint --fix after file edits.
 
+## Testing
+
+See **[docs/testing.md](docs/testing.md)** for the complete testing guide. Key points:
+
+### Philosophy
+- **Test behavior, not implementation** - Focus on what code does, not how
+- **Prioritize high-value tests** - Security-critical code (encryption, auth) gets 100% coverage
+- **Fast feedback loops** - Unit tests in ms, integration in seconds
+- **Mock external dependencies** - Prisma, Vercel KV, Discogs API are all mocked
+
+### Test Pyramid
+```
+       /\        E2E (Playwright) - Critical user journeys
+      /  \
+     /----\      Integration - API routes
+    /      \
+   /--------\    Unit (Vitest) - Core utilities, components
+```
+
+### Structure
+- `src/**/__tests__/` - Unit and integration tests (colocated)
+- `tests/e2e/` - Playwright E2E tests
+- `tests/mocks/` - Mock factories (Prisma, KV, NextAuth, Discogs)
+- `tests/fixtures/` - Test data
+- `tests/setup/` - Vitest setup and utilities
+
+### Writing Tests
+- Use `vi.hoisted()` for mocks that need to be defined before `vi.mock()` hoisting
+- API route tests use `createMockRequest()` and `createParams()` from test-utils
+- Component tests use React Testing Library with `@testing-library/jest-dom` matchers
+
 ## Working with Claude Code
 
 - Start complex tasks in **Plan mode** (shift+tab twice) to align on approach before coding
 - Update this CLAUDE.md when Claude makes mistakes to prevent recurrence
 - Use `/review` before committing significant changes
 - Provide verification methods (tests, type checks) so Claude can validate its work
+- **Run `npm run test:run` after making changes** to verify tests still pass
