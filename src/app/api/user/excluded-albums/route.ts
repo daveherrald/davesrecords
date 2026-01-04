@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { deleteCachedPattern } from '@/lib/cache';
+import {
+  logEntityManagement,
+  actorFromSession,
+  endpointFromRequest,
+  OCSF_ACTIVITY,
+  OCSF_STATUS,
+} from '@/lib/audit';
 
 /**
  * GET /api/user/excluded-albums - Get user's excluded album IDs
@@ -54,6 +61,26 @@ export async function POST(request: NextRequest) {
         releaseId: releaseId.toString(),
       },
     });
+
+    // Log album exclusion (privacy filter)
+    try {
+      await logEntityManagement(
+        OCSF_ACTIVITY.ENTITY_MANAGEMENT.CREATE,
+        `Excluded release from public view: ${releaseId}`,
+        {
+          type: 'ExcludedAlbum',
+          id: releaseId.toString(),
+          name: 'Privacy Filter',
+        },
+        {
+          actor: actorFromSession(session),
+          srcEndpoint: endpointFromRequest(request),
+          statusId: OCSF_STATUS.SUCCESS,
+        }
+      );
+    } catch (logError) {
+      console.error('Failed to log album exclusion (non-fatal):', logError);
+    }
 
     // Invalidate collection cache for this user
     const user = await prisma.user.findUnique({
@@ -111,6 +138,26 @@ export async function DELETE(request: NextRequest) {
         releaseId: releaseId.toString(),
       },
     });
+
+    // Log album inclusion (remove from privacy filter)
+    try {
+      await logEntityManagement(
+        OCSF_ACTIVITY.ENTITY_MANAGEMENT.DELETE,
+        `Included release in public view: ${releaseId}`,
+        {
+          type: 'ExcludedAlbum',
+          id: releaseId.toString(),
+          name: 'Privacy Filter',
+        },
+        {
+          actor: actorFromSession(session),
+          srcEndpoint: endpointFromRequest(request),
+          statusId: OCSF_STATUS.SUCCESS,
+        }
+      );
+    } catch (logError) {
+      console.error('Failed to log album inclusion (non-fatal):', logError);
+    }
 
     // Invalidate collection cache for this user
     const user = await prisma.user.findUnique({

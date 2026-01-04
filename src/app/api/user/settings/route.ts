@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import {
+  logAccountChange,
+  actorFromSession,
+  endpointFromRequest,
+  OCSF_ACTIVITY,
+  OCSF_STATUS,
+} from '@/lib/audit';
 
 /**
  * POST /api/user/settings
@@ -44,6 +51,37 @@ export async function POST(request: NextRequest) {
         albumCountDisplay: albumCountDisplay || 'PUBLIC_ONLY',
       },
     });
+
+    // Log settings update
+    try {
+      await logAccountChange(
+        OCSF_ACTIVITY.ACCOUNT_CHANGE.OTHER,
+        'User updated profile settings',
+        {
+          userId: session.user.id,
+          email: session.user.email,
+          name: session.user.name,
+        },
+        {
+          actor: actorFromSession(session),
+          srcEndpoint: endpointFromRequest(request),
+          statusId: OCSF_STATUS.SUCCESS,
+          rawData: {
+            changes: {
+              displayName,
+              bio: bio ? '[set]' : '[cleared]',
+              publicSlug,
+              defaultSort,
+              itemsPerPage,
+              isPublic,
+              albumCountDisplay,
+            },
+          },
+        }
+      );
+    } catch (logError) {
+      console.error('Failed to log settings update (non-fatal):', logError);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

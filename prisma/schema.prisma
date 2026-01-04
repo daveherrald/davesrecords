@@ -196,6 +196,93 @@ model CollectionView {
   @@index([visitorId])
 }
 
+// OCSF-compliant audit event logging
+model AuditEvent {
+  id String @id @default(cuid())
+
+  // OCSF Core Fields (Required)
+  classUid    Int // 3001, 3002, 3004, 3005, 6003
+  categoryUid Int // 3 (IAM), 6 (Application Activity)
+  activityId  Int // Activity-specific ID
+  typeUid     Int // classUid * 100 + activityId
+  severityId  Int      @default(1) // 1=Informational
+  time        DateTime @default(now())
+
+  // OCSF Descriptive Fields
+  message      String // Human-readable event description
+  className    String // e.g., "Authentication", "Account Change"
+  activityName String // e.g., "Logon", "Create", "Assign Privileges"
+  categoryName String // e.g., "Identity & Access Management"
+
+  // OCSF Status
+  statusId     Int     @default(1) // 0=Unknown, 1=Success, 2=Failure, 99=Other
+  statusCode   String? // HTTP status code or error code
+  statusDetail String? // Error message or details
+
+  // OCSF Actor (who performed the action)
+  actorUserId String?
+  actorEmail  String?
+  actorName   String?
+  actorRole   String?
+
+  // OCSF Device/Endpoint
+  srcIpAddress String?
+  srcUserAgent String?
+  srcEndpoint  Json? // Full endpoint details
+  dstEndpoint  Json? // Target service/endpoint
+
+  // OCSF Resource/Entity
+  resourceType String? // e.g., "User", "Stack", "DiscogsConnection"
+  resourceId   String?
+  resourceName String?
+  resourceData Json? // Before/after state, additional context
+
+  // OCSF Target User (for user-affecting actions)
+  targetUserId String?
+  targetEmail  String?
+  targetName   String?
+
+  // OCSF API Details (for API Activity events)
+  apiOperation String? // e.g., "GET", "POST", "DELETE"
+  apiEndpoint  String? // e.g., "/api/user/settings"
+  apiRequest   Json? // Request summary (sanitized)
+  apiResponse  Json? // Response summary
+
+  // OCSF Metadata
+  metadata Json? // version, product, vendor, profiles, etc.
+
+  // Application-specific extensions
+  rawData  Json? // Original event data if needed
+  unmapped Json? // Fields that don't fit OCSF
+
+  // Indexing
+  createdAt DateTime @default(now())
+
+  @@index([classUid])
+  @@index([categoryUid])
+  @@index([activityId])
+  @@index([severityId])
+  @@index([statusId])
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([resourceType, resourceId])
+  @@index([time])
+  @@index([createdAt])
+  @@index([typeUid])
+}
+
+// Track migration status from legacy audit tables
+model AuditMigration {
+  id          String   @id @default(cuid())
+  legacyTable String // "AdminAuditLog" or "AnalyticsEvent"
+  legacyId    String // Original record ID
+  newEventId  String // AuditEvent ID
+  migratedAt  DateTime @default(now())
+
+  @@unique([legacyTable, legacyId])
+  @@index([legacyTable])
+}
+
 // Excluded albums - albums hidden from public gallery
 model ExcludedAlbum {
   id        String   @id @default(cuid())

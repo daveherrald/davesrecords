@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, disconnectDiscogs, setPrimaryConnection, updateConnectionName } from '@/lib/auth';
+import {
+  logEntityManagement,
+  actorFromSession,
+  endpointFromRequest,
+  OCSF_ACTIVITY,
+  OCSF_STATUS,
+} from '@/lib/audit';
 
 /**
  * DELETE /api/auth/discogs/connections/[connectionId]
@@ -14,6 +21,25 @@ export async function DELETE(
     const { connectionId } = await params;
 
     await disconnectDiscogs(session.user.id, connectionId);
+
+    // Log disconnection
+    try {
+      await logEntityManagement(
+        OCSF_ACTIVITY.ENTITY_MANAGEMENT.DELETE,
+        `Disconnected Discogs connection: ${connectionId}`,
+        {
+          type: 'DiscogsConnection',
+          id: connectionId,
+        },
+        {
+          actor: actorFromSession(session),
+          srcEndpoint: endpointFromRequest(request),
+          statusId: OCSF_STATUS.SUCCESS,
+        }
+      );
+    } catch (logError) {
+      console.error('Failed to log disconnection (non-fatal):', logError);
+    }
 
     return NextResponse.json({
       success: true,
@@ -44,6 +70,27 @@ export async function PATCH(
     // Handle setPrimary action
     if (body.setPrimary === true) {
       await setPrimaryConnection(session.user.id, connectionId);
+
+      // Log primary connection change
+      try {
+        await logEntityManagement(
+          OCSF_ACTIVITY.ENTITY_MANAGEMENT.UPDATE,
+          `Set primary Discogs connection: ${connectionId}`,
+          {
+            type: 'DiscogsConnection',
+            id: connectionId,
+            data: { isPrimary: true },
+          },
+          {
+            actor: actorFromSession(session),
+            srcEndpoint: endpointFromRequest(request),
+            statusId: OCSF_STATUS.SUCCESS,
+          }
+        );
+      } catch (logError) {
+        console.error('Failed to log primary connection change (non-fatal):', logError);
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Primary connection updated',
@@ -53,6 +100,27 @@ export async function PATCH(
     // Handle rename action
     if (body.name !== undefined) {
       await updateConnectionName(session.user.id, connectionId, body.name);
+
+      // Log connection rename
+      try {
+        await logEntityManagement(
+          OCSF_ACTIVITY.ENTITY_MANAGEMENT.UPDATE,
+          `Renamed Discogs connection: ${connectionId}`,
+          {
+            type: 'DiscogsConnection',
+            id: connectionId,
+            data: { name: body.name },
+          },
+          {
+            actor: actorFromSession(session),
+            srcEndpoint: endpointFromRequest(request),
+            statusId: OCSF_STATUS.SUCCESS,
+          }
+        );
+      } catch (logError) {
+        console.error('Failed to log connection rename (non-fatal):', logError);
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Connection name updated',

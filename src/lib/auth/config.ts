@@ -2,6 +2,12 @@ import type { NextAuthConfig } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "@/lib/db";
+import {
+  logAuthentication,
+  logAccountChange,
+  OCSF_ACTIVITY,
+  OCSF_STATUS,
+} from "@/lib/audit";
 
 /**
  * Generate a unique public slug for a new user
@@ -115,6 +121,64 @@ export const authOptions: NextAuthConfig = {
   },
 
   events: {
+    async signIn({ user, account, isNewUser }) {
+      // Log authentication event
+      try {
+        await logAuthentication(
+          OCSF_ACTIVITY.AUTHENTICATION.LOGON,
+          `User signed in via ${account?.provider || 'unknown'}`,
+          {
+            user: {
+              userId: user.id,
+              email: user.email,
+              name: user.name,
+            },
+            authProtocol: 'OAuth2',
+            service: account?.provider,
+            statusId: OCSF_STATUS.SUCCESS,
+          }
+        );
+
+        // If new user, also log account creation
+        if (isNewUser) {
+          await logAccountChange(
+            OCSF_ACTIVITY.ACCOUNT_CHANGE.CREATE,
+            'New user account created',
+            {
+              userId: user.id,
+              email: user.email,
+              name: user.name,
+            },
+            { statusId: OCSF_STATUS.SUCCESS }
+          );
+        }
+      } catch (error) {
+        // Don't fail auth if logging fails
+        console.error('Failed to log authentication event:', error);
+      }
+    },
+
+    async signOut(message) {
+      // Log sign-out event
+      try {
+        // message can be { session } or { token } depending on strategy
+        const userId = 'session' in message
+          ? message.session?.userId
+          : message.token?.sub;
+
+        await logAuthentication(
+          OCSF_ACTIVITY.AUTHENTICATION.LOGOFF,
+          'User signed out',
+          {
+            user: { userId },
+            statusId: OCSF_STATUS.SUCCESS,
+          }
+        );
+      } catch (error) {
+        console.error('Failed to log sign-out event:', error);
+      }
+    },
+
     async createUser({ user }) {
       // Generate unique publicSlug for new users
       const slug = await generateUniqueSlug(user.name, user.email);
