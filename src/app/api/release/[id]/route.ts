@@ -73,7 +73,7 @@ export async function GET(
   } catch (error) {
     console.error('Get album details error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to get album details' },
+      { error: 'Failed to get album details' },
       { status: 500 }
     );
   }
