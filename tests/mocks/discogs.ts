@@ -76,8 +76,8 @@ export function mockDiscogsResponses() {
  * Setup global fetch mock for Discogs API calls
  */
 export function setupFetchMock(responses = mockDiscogsResponses()) {
-  global.fetch = vi.fn().mockImplementation((url: string, options?: RequestInit) => {
-    const urlStr = typeof url === 'string' ? url : url.toString();
+  global.fetch = vi.fn().mockImplementation((url: string | URL | Request, options?: RequestInit) => {
+    const urlStr = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
 
     // Collection endpoint
     if (urlStr.includes('/collection/folders/0/releases')) {

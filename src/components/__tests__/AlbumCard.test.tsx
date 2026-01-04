@@ -36,6 +36,9 @@ const createMockAlbum = (overrides: Partial<Album> = {}): Album => ({
   coverImage: 'https://example.com/cover.jpg',
   format: 'Vinyl, LP',
   label: 'Apple Records',
+  genres: [],
+  styles: [],
+  dateAdded: '2024-01-01T00:00:00Z',
   ...overrides,
 });
 

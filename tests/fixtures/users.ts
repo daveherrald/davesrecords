@@ -107,7 +107,7 @@ export const mockConnections: Partial<DiscogsConnection>[] = [
     accessToken: 'encrypted:test-access-token',
     accessTokenSecret: 'encrypted:test-access-token-secret',
     isPrimary: true,
-    createdAt: new Date('2024-01-01'),
+    connectedAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   },
   {
@@ -119,7 +119,7 @@ export const mockConnections: Partial<DiscogsConnection>[] = [
     accessToken: 'encrypted:test-access-token-2',
     accessTokenSecret: 'encrypted:test-access-token-secret-2',
     isPrimary: false,
-    createdAt: new Date('2024-01-10'),
+    connectedAt: new Date('2024-01-10'),
     updatedAt: new Date('2024-01-10'),
   },
   {
@@ -131,7 +131,7 @@ export const mockConnections: Partial<DiscogsConnection>[] = [
     accessToken: 'encrypted:admin-access-token',
     accessTokenSecret: 'encrypted:admin-access-token-secret',
     isPrimary: true,
-    createdAt: new Date('2023-06-01'),
+    connectedAt: new Date('2023-06-01'),
     updatedAt: new Date('2023-06-01'),
   },
 ];

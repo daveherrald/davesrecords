@@ -7,6 +7,21 @@ import {
   createRequestWithIP,
 } from '../../../../tests/setup/test-utils';
 
+// Type for collection API response
+interface CollectionResponse {
+  user?: { id: string; displayName?: string; bio?: string };
+  albums?: Array<{ id: number; title?: string }>;
+  pagination?: { items: number; pages: number; page: number; per_page: number };
+  isOwnCollection?: boolean;
+  excludedIds?: string[];
+  connections?: Array<{ id: string; username: string; name: string; isPrimary: boolean }>;
+  cached?: boolean;
+  totalRecords?: number;
+  publicRecords?: number;
+  albumCount?: { total: number; public: number };
+  error?: string;
+}
+
 // Use vi.hoisted to define mocks before vi.mock hoisting
 const { mockRateLimiter, mockGetCached, mockSetCached, mockGetSession, mockGetUserCollection } = vi.hoisted(() => ({
   mockRateLimiter: {
@@ -55,7 +70,7 @@ describe('GET /api/collection/[slug]', () => {
       const response = await GET(request, { params: createParams({ slug: 'unknown' }) });
 
       expect(response.status).toBe(404);
-      const data = await getResponseJson(response);
+      const data = await getResponseJson<CollectionResponse>(response);
       expect(data).toEqual({ error: 'Collection not found' });
     });
 
@@ -70,7 +85,7 @@ describe('GET /api/collection/[slug]', () => {
       const response = await GET(request, { params: createParams({ slug: 'private-user' }) });
 
       expect(response.status).toBe(403);
-      const data = await getResponseJson(response);
+      const data = await getResponseJson<CollectionResponse>(response);
       expect(data).toEqual({ error: 'This collection is private' });
     });
 
@@ -85,7 +100,7 @@ describe('GET /api/collection/[slug]', () => {
       const response = await GET(request, { params: createParams({ slug: 'no-discogs' }) });
 
       expect(response.status).toBe(404);
-      const data = await getResponseJson(response);
+      const data = await getResponseJson<CollectionResponse>(response);
       expect(data).toEqual({ error: 'This user has not connected their Discogs account' });
     });
   });
@@ -106,7 +121,7 @@ describe('GET /api/collection/[slug]', () => {
       const response = await GET(request, { params: createParams({ slug: 'test' }) });
 
       expect(response.status).toBe(429);
-      const data = await getResponseJson(response);
+      const data = await getResponseJson<CollectionResponse>(response);
       expect(data).toEqual({ error: 'Too many requests. Please try again later.' });
     });
 
@@ -141,7 +156,7 @@ describe('GET /api/collection/[slug]', () => {
       const response = await GET(request, { params: createParams({ slug: 'test' }) });
 
       expect(response.status).toBe(200);
-      const data = await getResponseJson(response);
+      const data = await getResponseJson<CollectionResponse>(response);
       expect(data.cached).toBe(true);
       expect(data.isOwnCollection).toBe(false);
       expect(mockGetUserCollection).not.toHaveBeenCalled();
@@ -227,7 +242,7 @@ describe('GET /api/collection/[slug]', () => {
       const response = await GET(request, { params: createParams({ slug: 'test' }) });
 
       expect(response.status).toBe(200);
-      const data = await getResponseJson(response);
+      const data = await getResponseJson<CollectionResponse>(response);
 
       expect(data.user).toEqual({
         id: 'user-1',
@@ -255,7 +270,7 @@ describe('GET /api/collection/[slug]', () => {
       const request = createMockRequest('http://localhost:3000/api/collection/test');
       const response = await GET(request, { params: createParams({ slug: 'test' }) });
 
-      const data = await getResponseJson(response);
+      const data = await getResponseJson<CollectionResponse>(response);
       expect(data.isOwnCollection).toBe(true);
       expect(data.excludedIds).toEqual(['123', '456']);
       expect(data.connections).toBeDefined();
@@ -317,7 +332,7 @@ describe('GET /api/collection/[slug]', () => {
       const request = createMockRequest('http://localhost:3000/api/collection/test');
       const response = await GET(request, { params: createParams({ slug: 'test' }) });
 
-      const data = await getResponseJson(response);
+      const data = await getResponseJson<CollectionResponse>(response);
       expect(data.albumCount).toEqual({
         total: 100,
         public: 95, // 100 - 5
@@ -334,7 +349,7 @@ describe('GET /api/collection/[slug]', () => {
       const response = await GET(request, { params: createParams({ slug: 'test' }) });
 
       expect(response.status).toBe(500);
-      const data = await getResponseJson(response);
+      const data = await getResponseJson<CollectionResponse>(response);
       expect(data).toEqual({ error: 'Failed to fetch collection' });
     });
 

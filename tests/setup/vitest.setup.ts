@@ -7,7 +7,7 @@ process.env.ENCRYPTION_KEY = Buffer.from('a'.repeat(32)).toString('base64');
 process.env.DISCOGS_CONSUMER_KEY = 'test-consumer-key';
 process.env.DISCOGS_CONSUMER_SECRET = 'test-consumer-secret';
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
-process.env.NODE_ENV = 'test';
+(process.env as Record<string, string>).NODE_ENV = 'test';
 process.env.NEXTAUTH_SECRET = 'test-nextauth-secret-key-at-least-32-chars';
 process.env.NEXTAUTH_URL = 'http://localhost:3000';
 

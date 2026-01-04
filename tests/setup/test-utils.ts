@@ -25,7 +25,7 @@ export function createMockRequest(
     requestInit.body = JSON.stringify(body);
   }
 
-  return new NextRequest(new URL(url, 'http://localhost:3000'), requestInit);
+  return new NextRequest(new URL(url, 'http://localhost:3000'), requestInit as unknown as import('next/dist/server/web/spec-extension/request').RequestInit);
 }
 
 /**

@@ -359,8 +359,8 @@ describe('OCSF Event Builders', () => {
       expect(event.categoryUid).toBe(OCSF_CATEGORY.APPLICATION_ACTIVITY); // 6
       expect(event.typeUid).toBe(600302); // 6003 * 100 + 2
       expect(event.activityName).toBe('Read');
-      expect(event.api.operation).toBe('GET');
-      expect(event.api.endpoint).toBe('/api/collection/test-user');
+      expect(event.api!.operation).toBe('GET');
+      expect(event.api!.endpoint).toBe('/api/collection/test-user');
     });
 
     it('creates API activity event for POST request', () => {
@@ -377,7 +377,7 @@ describe('OCSF Event Builders', () => {
 
       expect(event.typeUid).toBe(600301); // 6003 * 100 + 1
       expect(event.activityName).toBe('Create');
-      expect(event.api.request).toEqual({ displayName: 'New Name' });
+      expect(event.api!.request).toEqual({ displayName: 'New Name' });
     });
 
     it('creates API activity event for DELETE request', () => {
