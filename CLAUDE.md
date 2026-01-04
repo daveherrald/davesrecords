@@ -72,3 +72,22 @@ Users can connect up to 2 Discogs accounts. Key functions in `src/lib/auth/index
 - `setPrimaryConnection(userId, connectionId)` - Change primary account
 
 API routes and collection pages accept optional `connectionId` parameter.
+
+## Slash Commands
+
+Custom commands in `.claude/commands/`:
+- `/commit-push-pr` - Stage, commit, push to branch, create PR
+- `/review` - Run parallel code review checks (security, types, taxonomy, API)
+- `/deploy` - TypeScript check + deploy to dev and prod
+- `/typecheck` - Quick TypeScript verification
+
+## Hooks
+
+PostToolUse hook in `.claude/hooks/format-files.sh` auto-runs ESLint --fix after file edits.
+
+## Working with Claude Code
+
+- Start complex tasks in **Plan mode** (shift+tab twice) to align on approach before coding
+- Update this CLAUDE.md when Claude makes mistakes to prevent recurrence
+- Use `/review` before committing significant changes
+- Provide verification methods (tests, type checks) so Claude can validate its work
