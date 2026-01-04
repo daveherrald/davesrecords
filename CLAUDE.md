@@ -123,6 +123,41 @@ See **[docs/testing.md](docs/testing.md)** for the complete testing guide. Key p
 - API route tests use `createMockRequest()` and `createParams()` from test-utils
 - Component tests use React Testing Library with `@testing-library/jest-dom` matchers
 
+## Accessibility
+
+This project uses Radix UI components (via shadcn/ui) which have strict accessibility requirements.
+
+### Dialog Components
+Every `<DialogContent>` **must** have a `<DialogTitle>` child, even if visually hidden:
+
+```tsx
+// For loading states or image lightboxes, use sr-only:
+<DialogContent>
+  <DialogTitle className="sr-only">Loading album details...</DialogTitle>
+  {/* content */}
+</DialogContent>
+
+// For visible dialogs, use DialogHeader:
+<DialogContent>
+  <DialogHeader>
+    <DialogTitle>Edit Profile</DialogTitle>
+    <DialogDescription>Make changes to your profile.</DialogDescription>
+  </DialogHeader>
+  {/* content */}
+</DialogContent>
+```
+
+### Common Patterns
+- **Conditional rendering**: If dialog content varies by state (loading/error/success), ensure DialogTitle exists in ALL states
+- **Image lightboxes**: Use `className="sr-only"` for visually hidden but accessible titles
+- **Console errors**: `DialogContent requires DialogTitle` means a title is missing - fix immediately
+
+### Other Radix Components
+Similar requirements apply to:
+- `AlertDialog` → needs `AlertDialogTitle`
+- `Sheet` → needs `SheetTitle`
+- `Drawer` → needs title via `aria-labelledby`
+
 ## Working with Claude Code
 
 - Start complex tasks in **Plan mode** (shift+tab twice) to align on approach before coding
