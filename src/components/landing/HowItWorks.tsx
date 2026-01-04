@@ -4,9 +4,9 @@ export default function HowItWorks() {
   const steps = [
     {
       number: '1',
-      title: 'Connect Your Discogs Account',
+      title: 'Sign In & Connect Discogs',
       description:
-        "Securely connect your Discogs account using OAuth. We only read your collection data - we never modify anything.",
+        'Sign in with Google, then connect your Discogs account. We sync your collection but never modify it.',
       icon: (
         <svg
           className="h-6 w-6"
@@ -25,9 +25,9 @@ export default function HowItWorks() {
     },
     {
       number: '2',
-      title: 'Generate Your QR Code',
+      title: 'Create Your Stack',
       description:
-        'Get a unique URL and QR code for your collection. Download it, print it, or display it digitally.',
+        'Your collection becomes a Stack - a shareable page with all your records displayed as album art.',
       icon: (
         <svg
           className="h-6 w-6"
@@ -39,16 +39,16 @@ export default function HowItWorks() {
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={2}
-            d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
           />
         </svg>
       ),
     },
     {
       number: '3',
-      title: 'Share & Scan',
+      title: 'Share It',
       description:
-        'Visitors scan your QR code and instantly browse your vinyl collection on their phone. Beautiful, fast, and mobile-optimized.',
+        'Get a link and QR code. Print it, share it, or place it by your turntable for guests to browse.',
       icon: (
         <svg
           className="h-6 w-6"
@@ -60,7 +60,7 @@ export default function HowItWorks() {
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={2}
-            d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+            d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
           />
         </svg>
       ),
@@ -68,36 +68,33 @@ export default function HowItWorks() {
   ];
 
   return (
-    <section className="w-full max-w-6xl mx-auto">
+    <section className="w-full max-w-4xl mx-auto">
       <div className="text-center space-y-4 mb-12">
-        <h2 className="text-3xl sm:text-4xl font-bold text-white">
+        <h2 className="text-2xl sm:text-3xl font-semibold text-white">
           How It Works
         </h2>
-        <p className="text-lg text-neutral-300 max-w-2xl mx-auto">
-          Get started in minutes with these simple steps
-        </p>
       </div>
 
       <div className="grid gap-8 md:grid-cols-3">
         {steps.map((step) => (
           <div
             key={step.number}
-            className="relative flex flex-col items-center text-center space-y-4"
+            className="relative flex flex-col items-center text-center space-y-4 p-6"
           >
-            {/* Step Number */}
-            <div className="absolute -top-4 -left-4 w-12 h-12 rounded-full bg-neutral-800 border-4 border-neutral-900 flex items-center justify-center">
-              <span className="text-xl font-bold text-white">{step.number}</span>
+            {/* Step Number Badge */}
+            <div className="w-10 h-10 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center">
+              <span className="text-lg font-semibold text-white">{step.number}</span>
             </div>
 
             {/* Icon */}
-            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-neutral-800 text-white mt-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-neutral-800/50 text-neutral-300">
               {step.icon}
             </div>
 
             {/* Content */}
             <div className="space-y-2">
-              <h3 className="text-xl font-semibold text-white">{step.title}</h3>
-              <p className="text-sm text-neutral-400">{step.description}</p>
+              <h3 className="text-lg font-medium text-white">{step.title}</h3>
+              <p className="text-sm text-neutral-400 leading-relaxed">{step.description}</p>
             </div>
           </div>
         ))}

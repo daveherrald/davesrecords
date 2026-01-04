@@ -8,7 +8,7 @@ export default function Footer() {
           <div className="text-center sm:text-left">
             <h3 className="text-lg font-bold text-white">Dave&apos;s Records</h3>
             <p className="text-sm text-neutral-400">
-              Share your vinyl collection beautifully
+              Your records. Your Stack.
             </p>
           </div>
 

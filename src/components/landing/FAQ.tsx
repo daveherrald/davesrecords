@@ -10,54 +10,46 @@ import {
 export default function FAQ() {
   const faqs = [
     {
-      question: 'Is Dave\'s Records free to use?',
+      question: 'What is a Stack?',
       answer:
-        'Yes! Dave\'s Records is completely free. Connect your Discogs account and start sharing your collection today.',
+        'A Stack is your vinyl collection displayed as a beautiful, browsable page. Think of it as a digital view of the records stacked by your turntable - easy to flip through and share with anyone.',
     },
     {
-      question: 'Is my collection data private?',
+      question: 'Is it free?',
       answer:
-        'You control your privacy. Collections are public by default (so visitors can scan and view), but you can make yours private in settings. Your OAuth tokens are encrypted and stored securely.',
+        'Yes, completely free. Sign in, connect your Discogs, and your Stack is ready to share.',
     },
     {
       question: 'Do I need a Discogs account?',
       answer:
-        'Yes, Dave\'s Records pulls your collection data from Discogs. If you don\'t have a Discogs account, you can create one for free at discogs.com.',
+        'Yes. Your Stack pulls from your Discogs collection. If you don\'t have one, create a free account at discogs.com and add some records.',
     },
     {
-      question: 'Can I customize how my collection looks?',
+      question: 'How do I share my Stack?',
       answer:
-        'Your collection is automatically displayed with beautiful album artwork in a responsive grid. You can sort and filter, and visitors can search your collection.',
-    },
-    {
-      question: 'How do I share my collection?',
-      answer:
-        'After connecting, you\'ll get a unique URL (like davesrecords.com/c/your-name) and a QR code. Share the link or display the QR code for visitors to scan.',
+        'You get a unique URL (like davesrecords.com/c/your-name) and a downloadable QR code. Share the link online or print the QR code to display by your records.',
     },
   ];
 
   return (
-    <section className="w-full max-w-3xl mx-auto">
-      <div className="text-center space-y-4 mb-12">
-        <h2 className="text-3xl sm:text-4xl font-bold text-white">
-          Frequently Asked Questions
+    <section className="w-full max-w-2xl mx-auto">
+      <div className="text-center space-y-2 mb-10">
+        <h2 className="text-2xl sm:text-3xl font-semibold text-white">
+          FAQ
         </h2>
-        <p className="text-lg text-neutral-300">
-          Everything you need to know about Dave&apos;s Records
-        </p>
       </div>
 
-      <Accordion type="single" collapsible className="space-y-4">
+      <Accordion type="single" collapsible className="space-y-3">
         {faqs.map((faq, index) => (
           <AccordionItem
             key={index}
             value={`item-${index}`}
-            className="border border-neutral-700 rounded-lg px-6 bg-neutral-800/50"
+            className="border border-neutral-700 rounded-lg px-5 bg-neutral-800/30"
           >
-            <AccordionTrigger className="text-left text-white hover:text-neutral-300">
+            <AccordionTrigger className="text-left text-white hover:text-neutral-300 text-sm sm:text-base py-4">
               {faq.question}
             </AccordionTrigger>
-            <AccordionContent className="text-neutral-400">
+            <AccordionContent className="text-neutral-400 text-sm pb-4">
               {faq.answer}
             </AccordionContent>
           </AccordionItem>
