@@ -22,7 +22,7 @@ export async function DELETE(
   } catch (error) {
     console.error('Failed to disconnect:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to disconnect' },
+      { error: 'Failed to disconnect' },
       { status: 500 }
     );
   }
@@ -66,7 +66,7 @@ export async function PATCH(
   } catch (error) {
     console.error('Failed to update connection:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to update connection' },
+      { error: 'Failed to update connection' },
       { status: 500 }
     );
   }
