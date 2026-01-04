@@ -25,27 +25,20 @@ test.describe('Authentication Flow', () => {
   });
 
   test.describe('protected routes', () => {
-    test('settings requires authentication', async ({ page }) => {
-      await page.goto('/settings');
+    test('dashboard settings requires authentication', async ({ page }) => {
+      await page.goto('/dashboard/settings');
       await page.waitForLoadState('networkidle');
 
-      // Should redirect to auth or show sign in prompt
-      const isAuthPage = page.url().includes('/auth') || page.url().includes('/signin');
-      const hasSignInPrompt = await page.getByText(/sign in|log in/i).isVisible();
-
-      expect(isAuthPage || hasSignInPrompt).toBeTruthy();
+      // Should redirect to /auth/signin
+      expect(page.url()).toContain('/auth/signin');
     });
 
-    test('admin requires authentication and admin role', async ({ page }) => {
+    test('admin requires authentication', async ({ page }) => {
       await page.goto('/admin');
       await page.waitForLoadState('networkidle');
 
-      // Should redirect or show error
-      const isAuthPage = page.url().includes('/auth');
-      const hasError = await page.getByText(/unauthorized|forbidden|sign in/i).isVisible();
-      const isRedirected = !page.url().includes('/admin');
-
-      expect(isAuthPage || hasError || isRedirected).toBeTruthy();
+      // Should redirect to /auth/signin (not admin role check, just auth)
+      expect(page.url()).toContain('/auth/signin');
     });
   });
 
@@ -55,10 +48,10 @@ test.describe('Authentication Flow', () => {
       // Would click sign out and verify redirect to home/signin
 
       // After signing out, should not have access to protected routes
-      await page.goto('/settings');
+      await page.goto('/dashboard');
       await page.waitForLoadState('networkidle');
 
-      expect(page.url()).toContain('/auth');
+      expect(page.url()).toContain('/auth/signin');
     });
   });
 

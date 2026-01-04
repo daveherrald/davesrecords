@@ -7,16 +7,11 @@ import { test, expect } from '@playwright/test';
 test.describe('Settings Page', () => {
   test.describe('unauthenticated access', () => {
     test('redirects to login when not authenticated', async ({ page }) => {
-      await page.goto('/settings');
+      await page.goto('/dashboard/settings');
+      await page.waitForLoadState('networkidle');
 
-      // Should redirect to auth page or show sign in prompt
-      await page.waitForURL(/\/(auth|login|api\/auth)/);
-
-      // Or if it stays on settings, should show login prompt
-      const loginPrompt = page.getByText(/sign in|log in|authenticate/i);
-      const isOnAuthPage = page.url().includes('/auth') || page.url().includes('/login');
-
-      expect(isOnAuthPage || await loginPrompt.isVisible()).toBeTruthy();
+      // Should redirect to /auth/signin
+      expect(page.url()).toContain('/auth/signin');
     });
   });
 
@@ -25,7 +20,7 @@ test.describe('Settings Page', () => {
     // Using test.skip for unauthenticated testing
     test.skip('displays settings form when authenticated', async ({ page }) => {
       // In a real test, you would authenticate first
-      await page.goto('/settings');
+      await page.goto('/dashboard/settings');
       await page.waitForLoadState('networkidle');
 
       // Should have settings form elements
@@ -35,7 +30,7 @@ test.describe('Settings Page', () => {
     });
 
     test.skip('can update display name', async ({ page }) => {
-      await page.goto('/settings');
+      await page.goto('/dashboard/settings');
       await page.waitForLoadState('networkidle');
 
       const displayNameInput = page.getByLabel(/display name/i);
@@ -49,7 +44,7 @@ test.describe('Settings Page', () => {
     });
 
     test.skip('can toggle public collection setting', async ({ page }) => {
-      await page.goto('/settings');
+      await page.goto('/dashboard/settings');
       await page.waitForLoadState('networkidle');
 
       const publicToggle = page.getByRole('switch', { name: /public/i });
@@ -70,31 +65,25 @@ test.describe('Settings Page', () => {
 test.describe('Admin Pages', () => {
   test('admin page requires authentication', async ({ page }) => {
     await page.goto('/admin');
-
-    // Should redirect or show unauthorized
-    const isRedirected = !page.url().endsWith('/admin');
-    const unauthorizedText = page.getByText(/unauthorized|forbidden|sign in|admin only/i);
-
-    expect(isRedirected || await unauthorizedText.isVisible()).toBeTruthy();
-  });
-
-  test('admin users page requires admin role', async ({ page }) => {
-    await page.goto('/admin/users');
-
-    // Should redirect or show unauthorized
     await page.waitForLoadState('networkidle');
 
-    const isRedirected = !page.url().includes('/admin/users');
-    const unauthorizedText = page.getByText(/unauthorized|forbidden|sign in|admin only/i);
+    // Should redirect to /auth/signin
+    expect(page.url()).toContain('/auth/signin');
+  });
 
-    expect(isRedirected || await unauthorizedText.isVisible()).toBeTruthy();
+  test('admin users page requires authentication', async ({ page }) => {
+    await page.goto('/admin/users');
+    await page.waitForLoadState('networkidle');
+
+    // Should redirect to /auth/signin
+    expect(page.url()).toContain('/auth/signin');
   });
 });
 
 test.describe('QR Code Generation', () => {
   test.skip('generates QR code for collection', async ({ page }) => {
     // Would need authentication
-    await page.goto('/settings');
+    await page.goto('/dashboard/qr');
     await page.waitForLoadState('networkidle');
 
     // Look for QR code button or section
@@ -110,15 +99,11 @@ test.describe('QR Code Generation', () => {
 });
 
 test.describe('Discogs Connection', () => {
-  test('shows connect Discogs button when not connected', async ({ page }) => {
-    // For unauthenticated users, this might redirect
-    await page.goto('/settings');
+  test('redirects to auth when checking Discogs connection unauthenticated', async ({ page }) => {
+    await page.goto('/dashboard/settings');
+    await page.waitForLoadState('networkidle');
 
-    // If we can access the page, look for Discogs connection option
-    const discogsSection = page.getByText(/discogs|connect/i);
-
-    // Either redirected to auth or shows the settings
-    const isRedirected = page.url().includes('/auth');
-    expect(isRedirected || await discogsSection.isVisible()).toBeTruthy();
+    // Should redirect to /auth/signin
+    expect(page.url()).toContain('/auth/signin');
   });
 });
