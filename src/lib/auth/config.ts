@@ -96,8 +96,19 @@ export const authOptions: NextAuthConfig = {
         }
 
         // Find primary connection (fallback to first connection if no primary set)
-        const primary = fullUser.discogsConnection.find(c => c.isPrimary)
-          || fullUser.discogsConnection[0];
+        let primary = fullUser.discogsConnection.find(c => c.isPrimary);
+
+        // Auto-promote first connection to primary if user has connections but no primary
+        // This fixes pre-migration accounts that don't have isPrimary set
+        if (!primary && fullUser.discogsConnection.length > 0) {
+          primary = fullUser.discogsConnection[0];
+          // Update database to set this connection as primary
+          await prisma.discogsConnection.update({
+            where: { id: primary.id },
+            data: { isPrimary: true },
+          });
+          primary = { ...primary, isPrimary: true };
+        }
 
         session.user = {
           ...session.user,
