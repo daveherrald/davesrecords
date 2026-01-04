@@ -141,6 +141,8 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 border-neutral-700">
+        {/* Visually hidden title for accessibility during loading state */}
+        {loading && <DialogTitle className="sr-only">Loading album details...</DialogTitle>}
         {loading ? (
           <div className="space-y-4 p-4">
             <Skeleton className="h-8 w-3/4 bg-neutral-700" />
