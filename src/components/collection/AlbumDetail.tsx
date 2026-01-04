@@ -345,6 +345,9 @@ export default function AlbumDetail({ albumId, userSlug, onClose }: AlbumDetailP
       {isLightboxOpen && album && (
         <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
           <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-none" showCloseButton={false}>
+            <DialogTitle className="sr-only">
+              {album.artist} - {album.title} (Image {currentImageIndex + 1} of {album.images.length})
+            </DialogTitle>
             <div
               className="relative w-full h-[95vh] flex items-center justify-center group"
               onTouchStart={onTouchStart}
