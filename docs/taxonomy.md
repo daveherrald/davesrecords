@@ -53,6 +53,12 @@ A role attributed to an artist on a release (Producer, Engineer, Mastering, etc.
 
 An individual piece of music within a release. Tracks are ordered within the release's format structure.
 
+### Record
+
+Informal term for a vinyl record. Widely used in everyday language but not a formal Discogs database entity. In Dave's Records, we use "record" conversationally while "Release" and "Instance" are the precise terms.
+
+"I just added a record to my stack" = "I placed an Instance in my Stack"
+
 ### Format
 
 The physical medium of a release:
